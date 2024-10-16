@@ -2,24 +2,40 @@ import collections
 
 
 def repair(s):
+    """
+    Repairs the input string by replacing the most frequent adjacent pairs of symbols with new non-terminal symbols.
+
+    Args:
+        s (str): The input string to be repaired.
+
+    Returns:
+        tuple: A tuple containing:
+            - symbols (list): The list of symbols after replacement.
+            - productions (dict): A dictionary of productions where keys are new non-terminal symbols and values are the pairs they replace.
+    """
     symbols = list(s)
     productions = {}
     non_terminal_counter = 1
 
     while True:
+        # Count the frequency of each adjacent pair of symbols
         pair_counts = collections.Counter((symbols[i], symbols[i + 1]) for i in range(len(symbols) - 1))
+        # Filter pairs that occur more than once
         frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
 
         if not frequent_pairs:
             break
 
+        # Find the most frequent pair
         most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
         new_non_terminal = f'A{non_terminal_counter}'
         non_terminal_counter += 1
+        # Add the new non-terminal to the productions dictionary
         productions[new_non_terminal] = list(most_frequent_pair)
 
         i = 0
         while i < len(symbols) - 1:
+            # Replace occurrences of the most frequent pair with the new non-terminal
             if symbols[i:i + 2] == list(most_frequent_pair):
                 symbols[i] = new_non_terminal
                 del symbols[i + 1]
@@ -31,6 +47,18 @@ def repair(s):
 
 
 def convert_to_cnf(start_symbol, productions):
+    """
+    Converts a context-free grammar (CFG) to Chomsky Normal Form (CNF).
+
+    Args:
+        start_symbol (str): The start symbol of the CFG.
+        productions (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols (terminals or non-terminals).
+
+    Returns:
+        tuple: A tuple containing:
+            - start_nt (str): The new start symbol for the CNF.
+            - cnf_productions (dict): A dictionary of CNF productions.
+    """
     cnf_productions = {}
     new_non_terminal_counter = 1
 
@@ -46,6 +74,15 @@ def convert_to_cnf(start_symbol, productions):
 
     # Step 2: Replace terminals in productions
     def replace_terminals(symbols):
+        """
+        Replaces terminal symbols in a list of symbols with their corresponding non-terminals.
+
+        Args:
+            symbols (list): A list of symbols (terminals or non-terminals).
+
+        Returns:
+            list: A list of symbols with terminals replaced by their corresponding non-terminals.
+        """
         return [terminal_non_terminals.get(s, s) for s in symbols]
 
     # Process existing productions
@@ -72,6 +109,17 @@ def convert_to_cnf(start_symbol, productions):
 
 
 def ai_upper(s):
+    """
+    Processes the input string to convert it into Chomsky Normal Form (CNF) and calculates the production count.
+
+    Args:
+        s (str): The input string to be processed.
+
+    Returns:
+        tuple: A tuple containing:
+            - production_count (int): The number of productions in the CNF minus the number of unique symbols in the input string.
+            - cnf_productions (dict): A dictionary of CNF productions.
+    """
     start_symbol, productions = repair(s)
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
     production_count = len(cnf_productions) - len(set(s))
