@@ -1,5 +1,6 @@
 import collections
 
+
 def repair(s):
     symbols = list(s)
     productions = {}
@@ -35,6 +36,7 @@ def repair(s):
 
     start_symbol = symbols
     return start_symbol, productions
+
 
 def convert_to_cnf(start_symbol, productions):
     cnf_productions = {}
@@ -82,12 +84,12 @@ def convert_to_cnf(start_symbol, productions):
 
     return start_nt, cnf_productions
 
-def AI_UPPER(s):
+
+def ai_upper(s):
     start_symbol, productions = repair(s)
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
     production_count = len(cnf_productions) - len(set(s))
-    return production_count
+    return production_count, cnf_productions
 
-
-s = "abracadabra"
-print(AI_UPPER(s))
+# s = "abracadabra"
+# print(ai_upper(s))
