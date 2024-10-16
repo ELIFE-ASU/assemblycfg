@@ -1,1 +1,1 @@
-AI calculater using smallest grammar algorithm re-pair. This will find short valid paths, but there is no guarentee that it will find the SHORTEST possible valid path.
+AI calculater using smallest grammar algorithm re-pair. This will find a short valid path, but there is no guarentee that it will find a SHORTEST possible valid path.
