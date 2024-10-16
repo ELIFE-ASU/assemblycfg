@@ -90,6 +90,3 @@ def ai_upper(s):
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
     production_count = len(cnf_productions) - len(set(s))
     return production_count, cnf_productions
-
-# s = "abracadabra"
-# print(ai_upper(s))
