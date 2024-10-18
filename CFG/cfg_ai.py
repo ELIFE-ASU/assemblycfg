@@ -124,3 +124,58 @@ def ai_upper(s):
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
     production_count = len(cnf_productions) - len(set(s))
     return production_count, cnf_productions
+
+def ai_upper_with_pathways(s):
+    """
+    Takes the production rules from ai_upper. Performs a topological sort to find order
+    of join operations. Prints the proper AI joins in order.
+
+    Args:
+        s (str): input string to be processed.
+
+    Returns:
+        ai_count (int): the final path length.
+    """
+    print(f"Processing {s}")
+    ai_count, production = ai_upper(s)
+    in_degrees = collections.defaultdict(int)
+    adj = collections.defaultdict(list)
+    for c in s:
+        in_degrees[c] = 0
+        adj[c] = []
+
+    tmap = collections.defaultdict(str)
+
+    for course, prereqs in production.items():
+        for req in prereqs:
+            in_degrees[course] += 1
+            adj[req].append(course)
+
+    start_q = collections.deque()
+    for symbol, ins in in_degrees.items():
+        if ins == 0:
+            start_q.append(symbol)
+
+    print(f"START SYMBOLS: {','.join(start_q)}")
+    print("JOINS: ")
+    q = collections.deque()
+    while start_q:
+        symbol = start_q.popleft()
+        tmap[symbol] = symbol
+        for neighbor in adj[symbol]:
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                q.append(neighbor)
+    while q:
+        symbol = q.popleft()
+        if len(production[symbol]) == 2:
+            a,b = production[symbol]
+            tmap[symbol] = tmap[a] + tmap[b]
+            print(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
+        else:
+            tmap[symbol] = production[symbol][0]
+        for neighbor in adj[symbol]:
+            in_degrees[neighbor] -= 1
+            if in_degrees[neighbor] == 0:
+                q.append(neighbor)
+    return ai_count
