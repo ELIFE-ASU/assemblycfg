@@ -125,6 +125,7 @@ def ai_upper(s):
     production_count = len(cnf_productions) - len(set(s))
     return production_count, cnf_productions
 
+
 def ai_upper_with_pathways(s):
     """
     Takes the production rules from ai_upper. Performs a topological sort to find order
@@ -136,7 +137,7 @@ def ai_upper_with_pathways(s):
     Returns:
         ai_count (int): the final path length.
     """
-    print(f"Processing {s}")
+    print(f"Processing {s}", flush=True)
     ai_count, production = ai_upper(s)
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
@@ -156,8 +157,9 @@ def ai_upper_with_pathways(s):
         if ins == 0:
             start_q.append(symbol)
 
-    print(f"START SYMBOLS: {','.join(start_q)}")
-    print("JOINS: ")
+    print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
+    print("JOINS: ", flush=True)
+    rules = []
     q = collections.deque()
     while start_q:
         symbol = start_q.popleft()
@@ -169,13 +171,15 @@ def ai_upper_with_pathways(s):
     while q:
         symbol = q.popleft()
         if len(production[symbol]) == 2:
-            a,b = production[symbol]
+            a, b = production[symbol]
             tmap[symbol] = tmap[a] + tmap[b]
-            print(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
+            rule = f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}"
+            rules.append(rule)
+            print(rule, flush=True)
         else:
             tmap[symbol] = production[symbol][0]
         for neighbor in adj[symbol]:
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
-    return ai_count
+    return ai_count, rules
