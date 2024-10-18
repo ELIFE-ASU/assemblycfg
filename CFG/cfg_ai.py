@@ -138,30 +138,25 @@ def ai_upper_with_pathways(s, f_print=True):
     Returns:
         ai_count (int): the final path length.
     """
-
     ai_count, production = ai_upper(s)
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
+    tmap = collections.defaultdict(str)
+
     for c in s:
         in_degrees[c] = 0
-        adj[c] = []
-
-    tmap = collections.defaultdict(str)
 
     for course, prereqs in production.items():
         for req in prereqs:
             in_degrees[course] += 1
             adj[req].append(course)
 
-    start_q = collections.deque()
-    for symbol, ins in in_degrees.items():
-        if ins == 0:
-            start_q.append(symbol)
+    start_q = collections.deque([symbol for symbol, ins in in_degrees.items() if ins == 0])
     if f_print:
         print(f"Processing {s}", flush=True)
         print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
         print("JOINS: ", flush=True)
-    rules = []
+
     q = collections.deque()
     while start_q:
         symbol = start_q.popleft()
@@ -170,21 +165,23 @@ def ai_upper_with_pathways(s, f_print=True):
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
+    rules = []
     while q:
         symbol = q.popleft()
         if len(production[symbol]) == 2:
             a, b = production[symbol]
             tmap[symbol] = tmap[a] + tmap[b]
-            rule = f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}"
-            rules.append(rule)
+            rules.append(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
         else:
             tmap[symbol] = production[symbol][0]
         for neighbor in adj[symbol]:
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
+
     if f_print:
         for rule in rules:
             print(rule, flush=True)
         print(f"PATH LENGTH: {ai_count}", flush=True)
+
     return ai_count, rules

@@ -15,5 +15,9 @@ def test_path():
     s_inpt = "abracadabra"
     ai, path = at.ai_upper_with_pathways(s_inpt)
     ai_ref = 7
+
+    final_path = path[-1].split(" = ")[1].strip()
+
     assert ai == ai_ref
     assert len(path) == ai_ref
+    assert final_path == s_inpt
