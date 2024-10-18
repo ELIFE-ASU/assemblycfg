@@ -1,6 +1,16 @@
+# CFG string assembly
+
 Directed string assembly index calculator using smallest grammar algorithm re-pair. This will find a short valid path, but there is no guarantee that it will find the SHORTEST possible valid path.
 
 CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but ai_upper_with_pathways prints the joins along the way. 
+
+# Installation
+
+`pip install git+https://github.com/ELIFE-ASU/CFG.git`
+
+# Examples
+
+See examples for an example.
 
 Example 1: abracadabra.
 ```console
