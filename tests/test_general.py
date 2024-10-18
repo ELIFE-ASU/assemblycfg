@@ -10,3 +10,10 @@ def test_abracadabra():
     ai, _ = at.ai_upper(s_inpt)
     ai_ref = 7
     assert ai == ai_ref
+
+def test_path():
+    s_inpt = "abracadabra"
+    ai, path = at.ai_upper_with_pathways(s_inpt)
+    ai_ref = 7
+    assert ai == ai_ref
+    assert len(path) == ai_ref

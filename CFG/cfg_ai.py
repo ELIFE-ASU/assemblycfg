@@ -182,4 +182,5 @@ def ai_upper_with_pathways(s):
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
+    print(f"PATH LENGTH: {ai_count}", flush=True)
     return ai_count, rules
