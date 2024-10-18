@@ -126,18 +126,19 @@ def ai_upper(s):
     return production_count, cnf_productions
 
 
-def ai_upper_with_pathways(s):
+def ai_upper_with_pathways(s, f_print=True):
     """
     Takes the production rules from ai_upper. Performs a topological sort to find order
     of join operations. Prints the proper AI joins in order.
 
     Args:
         s (str): input string to be processed.
+        f_print (bool): flag to print the rules and path length.
 
     Returns:
         ai_count (int): the final path length.
     """
-    print(f"Processing {s}", flush=True)
+
     ai_count, production = ai_upper(s)
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
@@ -156,9 +157,10 @@ def ai_upper_with_pathways(s):
     for symbol, ins in in_degrees.items():
         if ins == 0:
             start_q.append(symbol)
-
-    print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
-    print("JOINS: ", flush=True)
+    if f_print:
+        print(f"Processing {s}", flush=True)
+        print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
+        print("JOINS: ", flush=True)
     rules = []
     q = collections.deque()
     while start_q:
@@ -175,12 +177,14 @@ def ai_upper_with_pathways(s):
             tmap[symbol] = tmap[a] + tmap[b]
             rule = f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}"
             rules.append(rule)
-            print(rule, flush=True)
         else:
             tmap[symbol] = production[symbol][0]
         for neighbor in adj[symbol]:
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
-    print(f"PATH LENGTH: {ai_count}", flush=True)
+    if f_print:
+        for rule in rules:
+            print(rule, flush=True)
+        print(f"PATH LENGTH: {ai_count}", flush=True)
     return ai_count, rules
