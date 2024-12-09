@@ -108,7 +108,7 @@ def convert_to_cnf(start_symbol, productions):
     return start_nt, cnf_productions
 
 
-def ai_upper(s):
+def ai_core(s):
     """
     Processes the input string to convert it into Chomsky Normal Form (CNF) and calculates the production count.
 
@@ -126,19 +126,7 @@ def ai_upper(s):
     return production_count, cnf_productions
 
 
-def ai_upper_with_pathways(s, f_print=True):
-    """
-    Takes the production rules from ai_upper. Performs a topological sort to find order
-    of join operations. Prints the proper AI joins in order.
-
-    Args:
-        s (str): input string to be processed.
-        f_print (bool): flag to print the rules and path length.
-
-    Returns:
-        ai_count (int): the final path length.
-    """
-    ai_count, production = ai_upper(s)
+def get_rules(s, production, f_print=False):
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
     tmap = collections.defaultdict(str)
@@ -182,6 +170,49 @@ def ai_upper_with_pathways(s, f_print=True):
     if f_print:
         for rule in rules:
             print(rule, flush=True)
-        print(f"PATH LENGTH: {ai_count}", flush=True)
 
-    return ai_count, rules
+    return rules
+
+
+def extract_virtual_objects(rules):
+    """
+    Extracts a sorted set of objects from the given list of rules, excluding the entry on the right side of the last "=".
+
+    Args:
+        rules (list): A list of rules in the format "A + B = C".
+
+    Returns:
+        list: A list of objects found in the equations, sorted by the size of the string, excluding the last result.
+    """
+    objects = set()
+    for rule in rules:
+        parts = rule.replace(" + ", " = ").split(" = ")
+        objects.update(parts)
+    # Remove the last result
+    if rules:
+        last_result = rules[-1].split(" = ")[-1]
+        objects.discard(last_result)
+    return sorted(objects, key=len)
+
+
+def ai_with_pathways(s, f_print=False):
+    """
+    Takes the production rules from ai_upper. Performs a topological sort to find order
+    of join operations. Prints the proper AI joins in order.
+
+    Args:
+        s (str): input string to be processed.
+        f_print (bool): flag to print the rules and path length.
+
+    Returns:
+        ai_count (int): the final path length.
+    """
+    # Get the production rules and path length
+    ai_count, production = ai_core(s)
+    # Get the rules
+    rules = get_rules(s, production, f_print=f_print)
+    # Extract virtual objects
+    virt_obj = extract_virtual_objects(rules)
+    if f_print:
+        print(f"PATH LENGTH: {ai_count}", flush=True)
+    return ai_count, virt_obj, rules
