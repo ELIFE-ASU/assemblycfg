@@ -127,18 +127,32 @@ def ai_core(s):
 
 
 def get_rules(s, production, f_print=False):
+    """
+    Generates a list of rules from the given production dictionary by performing a topological sort.
+
+    Args:
+        s (str): The input string to be processed.
+        production (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols (terminals or non-terminals).
+        f_print (bool): Flag to print the rules and path length.
+
+    Returns:
+        list: A list of rules in the format "A + B = C".
+    """
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
     tmap = collections.defaultdict(str)
 
+    # Initialize in-degrees for each symbol in the input string
     for c in s:
         in_degrees[c] = 0
 
+    # Build the adjacency list and in-degrees for each course
     for course, prereqs in production.items():
         for req in prereqs:
             in_degrees[course] += 1
             adj[req].append(course)
 
+    # Initialize the start queue with symbols having zero in-degrees
     start_q = collections.deque([symbol for symbol, ins in in_degrees.items() if ins == 0])
     if f_print:
         print(f"Processing {s}", flush=True)
@@ -153,6 +167,7 @@ def get_rules(s, production, f_print=False):
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
                 q.append(neighbor)
+
     rules = []
     while q:
         symbol = q.popleft()
@@ -186,12 +201,15 @@ def extract_virtual_objects(rules):
     """
     objects = set()
     for rule in rules:
+        # Replace " + " with " = " and split the rule into individual objects
         parts = rule.replace(" + ", " = ").split(" = ")
+        # Add the objects to the set
         objects.update(parts)
     # Remove the last result
     if rules:
         last_result = rules[-1].split(" = ")[-1]
         objects.discard(last_result)
+    # Return the sorted list of objects by the size of the string
     return sorted(objects, key=len)
 
 
@@ -206,6 +224,8 @@ def ai_with_pathways(s, f_print=False):
 
     Returns:
         ai_count (int): the final path length.
+        virt_obj (list): a list of virtual objects found in the equations, sorted by the size of the string.
+        rules (list): a list of rules in the format "A + B = C".
     """
     # Get the production rules and path length
     ai_count, production = ai_core(s)
