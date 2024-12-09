@@ -215,4 +215,5 @@ def ai_with_pathways(s, f_print=False):
     virt_obj = extract_virtual_objects(rules)
     if f_print:
         print(f"PATH LENGTH: {ai_count}", flush=True)
+        print(f"VIRTUAL OBJECTS: {virt_obj}", flush=True)
     return ai_count, virt_obj, rules
