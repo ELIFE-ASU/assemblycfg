@@ -1,5 +1,52 @@
 import collections
 
+import networkx as nx
+
+
+def rules_to_graph(rules):
+    """
+    Converts a list of rules into a directed NetworkX graph.
+
+    Args:
+        rules (list): A list of rules in the format "A + B = C".
+
+    Returns:
+        networkx.DiGraph: A directed graph representing the rules.
+    """
+    G = nx.DiGraph()
+    for rule in rules:
+        parts = rule.split(" = ")
+        if len(parts) == 2:
+            left_side = parts[0].split(" + ")
+            right_side = parts[1]
+            for obj in left_side:
+                G.add_edge(obj, right_side)
+    return G
+
+
+def rules_to_graph_with_expansion(rules):
+    """
+    Converts a list of rules into a directed NetworkX graph and expands each node into virtual objects.
+
+    Args:
+        rules (list): A list of rules in the format "A + B = C".
+
+    Returns:
+        networkx.DiGraph: A directed graph representing the rules with nodes expanded into virtual objects.
+    """
+    G = nx.DiGraph()
+    virt_obj = extract_virtual_objects(rules)
+
+    for rule in rules:
+        parts = rule.split(" = ")
+        if len(parts) == 2:
+            left_side = parts[0].split(" + ")
+            right_side = parts[1]
+            for obj in left_side:
+                expanded_obj = [v for v in virt_obj if v in obj]
+                G.add_edge(" + ".join(expanded_obj), right_side)
+    return G
+
 
 def repair(s):
     """
