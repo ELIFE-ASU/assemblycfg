@@ -2,7 +2,7 @@
 
 Directed string assembly index calculator using smallest grammar algorithm re-pair. This will find a short valid path, but there is no guarantee that it will find the shortest possible valid path.
 
-CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but ai_upper_with_pathways prints the joins along the way. 
+CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but ai_upper_with_pathways prints the joining operations of the path. 
 
 # Installation
 Use pip to install this package.
