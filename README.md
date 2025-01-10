@@ -41,7 +41,7 @@ aaaaaa + a = aaaaaaa
 Path Length: 4
 ```
 This is the classic example of LZ & breakage failing because it reuses implicitly built strings to create 7a in 3 steps. Since this algorithm guarantees valid assembly pathways, it will never do that. 
-It properly adheres to the rules of assembly joining.
+It restricts itself to valid joining operations.
 
 ## Example 3: ababcdcd
 ```console
