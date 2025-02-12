@@ -4,16 +4,22 @@ Directed string assembly index calculator using smallest grammar algorithm re-pa
 
 CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but ai_upper_with_pathways prints the joining operations of the path. 
 
-# Installation
+## Installation
+Prerequisites: you will need to have Conda installed. You could skip the pip install, but you might have issues with assemblytheorytools. Making a new environment for this package is preferred but not necessary.
+```
+conda install conda-forge::networkx
+```
+
 Use pip to install this package.
+```
+pip install git+https://github.com/ELIFE-ASU/CFG.git
+```
 
-`pip install git+https://github.com/ELIFE-ASU/CFG.git`
-
-# Examples
+## Examples
 
 See the examples folder for examples of how to use the package.
 
-## Example 1: abracadabra.
+### Example 1: abracadabra.
 ```console
 Processing abracadabra
 START SYMBOLS: a,b,r,c,d
@@ -29,7 +35,7 @@ Path Length: 7
 ```
 This example demonstrates its ability to find and reuse paths properly. 
 
-## Example 2: aaaaaaa (7a's)
+### Example 2: aaaaaaa (7a's)
 ```console
 Processing aaaaaaa
 START SYMBOLS: a
@@ -43,7 +49,7 @@ Path Length: 4
 This is the classic example of LZ & breakage failing because it reuses implicitly built strings to create 7a in 3 steps. Since this algorithm guarantees valid assembly pathways, it will never do that. 
 It restricts itself to valid joining operations.
 
-## Example 3: ababcdcd
+### Example 3: ababcdcd
 ```console
 Processing ababcdcd
 START SYMBOLS: a,b,c,d
