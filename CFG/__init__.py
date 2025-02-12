@@ -4,4 +4,4 @@ from .cfg_ai import (ai_core,
                      extract_virtual_objects,
                      rules_to_graph)
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
