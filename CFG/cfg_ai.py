@@ -5,29 +5,26 @@ import networkx as nx
 
 def rules_to_graph(rules, virt_obj):
     """
-    Converts a list of rules into a directed NetworkX graph and adds virtual objects as nodes.
+    Converts a list of rules into a directed graph and adds virtual objects as nodes.
 
     Args:
-        rules (list): A list of rules in the format "A + B = C".
-        virt_obj (list): A list of virtual objects to be added as nodes in the graph.
+        rules (list): Rules in the format "A + B = C".
+        virt_obj (list): Virtual objects to be added as nodes.
 
     Returns:
-        networkx.DiGraph: A directed graph representing the rules with virtual objects as nodes.
+        networkx.DiGraph: Directed graph with rules and virtual objects.
     """
-    # Split each rule into parts by replacing " + " with " = " and then splitting by " = "
-    parts = [rule.replace(" + ", " = ").split(" = ") for rule in rules]
+    # Create a directed graph and add virtual objects as nodes
+    graph = nx.DiGraph()
+    graph.add_nodes_from(virt_obj)
 
-    # Create a directed graph
-    G = nx.DiGraph()
-    # Add nodes for each virtual object
-    G.add_nodes_from(virt_obj)
+    # Add edges based on rules
+    for rule in rules:
+        a, b, c = rule.replace(" + ", " = ").split(" = ")
+        graph.add_edge(a, c)
+        graph.add_edge(b, c)
 
-    # Add edges based on parts
-    for part in parts:
-        G.add_edge(part[0], part[2])
-        G.add_edge(part[1], part[2])
-
-    return G
+    return graph
 
 
 def repair(s):
@@ -47,28 +44,26 @@ def repair(s):
     non_terminal_counter = 1
 
     while True:
-        # Count the frequency of each adjacent pair of symbols
-        pair_counts = collections.Counter((symbols[i], symbols[i + 1]) for i in range(len(symbols) - 1))
-        # Filter pairs that occur more than once
+        # Count the frequency of adjacent pairs and filter those occurring more than once
+        pair_counts = collections.Counter(zip(symbols, symbols[1:]))
         frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
 
         if not frequent_pairs:
             break
 
-        # Find the most frequent pair
+        # Find the most frequent pair and create a new non-terminal
         most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
         new_non_terminal = f'A{non_terminal_counter}'
         non_terminal_counter += 1
-        # Add the new non-terminal to the productions dictionary
         productions[new_non_terminal] = list(most_frequent_pair)
 
         i = 0
         while i < len(symbols) - 1:
-            # Replace occurrences of the most frequent pair with the new non-terminal
-            if symbols[i:i + 2] == list(most_frequent_pair):
-                symbols[i] = new_non_terminal
-                del symbols[i + 1]
-                i = max(i - 1, 0)
+            # Check if the current pair matches the most frequent pair
+            if (symbols[i], symbols[i + 1]) == most_frequent_pair:
+                # Replace the pair with the new non-terminal
+                symbols[i:i + 2] = [new_non_terminal]
+                i = max(i - 1, 0)  # Step back to handle overlapping pairs
             else:
                 i += 1
 
@@ -91,17 +86,14 @@ def convert_to_cnf(start_symbol, productions):
     cnf_productions = {}
     new_non_terminal_counter = 1
 
-    # Step 1: Create non-terminals for terminals
-    terminals = {symbol for expansion in productions.values() for symbol in expansion if
-                 len(symbol) == 1 and symbol.islower()}
-    terminals.update(symbol for symbol in start_symbol if len(symbol) == 1 and symbol.islower())
+    # Identify terminal symbols in productions and start symbol
+    terminals = {s for exp in productions.values() for s in exp if s.islower()}
+    terminals.update(s for s in start_symbol if s.islower())
 
+    # Map terminals to new non-terminals and add corresponding productions
     terminal_non_terminals = {t: f'T_{t}' for t in terminals}
-
-    # Add terminal productions
     cnf_productions.update({nt: [t] for t, nt in terminal_non_terminals.items()})
 
-    # Step 2: Replace terminals in productions
     def replace_terminals(symbols):
         """
         Replaces terminal symbols in a list of symbols with their corresponding non-terminals.
@@ -119,19 +111,22 @@ def convert_to_cnf(start_symbol, productions):
         new_expansion = replace_terminals(expansion)
         while len(new_expansion) > 2:
             new_nt = f'N{new_non_terminal_counter}'
-            new_non_terminal_counter += 1
             cnf_productions[new_nt] = new_expansion[:2]
             new_expansion = [new_nt] + new_expansion[2:]
+            new_non_terminal_counter += 1
         cnf_productions[nt] = new_expansion
 
     # Handle the start symbol
     start_symbols = replace_terminals(start_symbol)
     start_nt = 'S'
+
+    # Break down the start symbol into CNF-compliant rules
     while len(start_symbols) > 2:
-        new_nt = f'N{new_non_terminal_counter}'
+        cnf_productions[f'N{new_non_terminal_counter}'] = start_symbols[:2]
+        start_symbols = [f'N{new_non_terminal_counter}'] + start_symbols[2:]
         new_non_terminal_counter += 1
-        cnf_productions[new_nt] = start_symbols[:2]
-        start_symbols = [new_nt] + start_symbols[2:]
+
+    # Assign the final start symbol production
     cnf_productions[start_nt] = start_symbols
 
     return start_nt, cnf_productions
@@ -139,7 +134,7 @@ def convert_to_cnf(start_symbol, productions):
 
 def ai_core(s):
     """
-    Processes the input string to convert it into Chomsky Normal Form (CNF) and calculates the production count.
+    Converts the input string into Chomsky Normal Form (CNF) and calculates the production count.
 
     Args:
         s (str): The input string to be processed.
@@ -151,8 +146,7 @@ def ai_core(s):
     """
     start_symbol, productions = repair(s)
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
-    production_count = len(cnf_productions) - len(set(s))
-    return production_count, cnf_productions
+    return len(cnf_productions) - len(set(s)), cnf_productions
 
 
 def get_rules(s, production, f_print=False):
@@ -169,47 +163,39 @@ def get_rules(s, production, f_print=False):
     """
     in_degrees = collections.defaultdict(int)
     adj = collections.defaultdict(list)
-    tmap = collections.defaultdict(str)
+    tmap = {}
 
-    # Initialize in-degrees for each symbol in the input string
+    # Initialize in-degrees and adjacency list
     for c in s:
         in_degrees[c] = 0
-
-    # Build the adjacency list and in-degrees for each course
     for course, prereqs in production.items():
         for req in prereqs:
             in_degrees[course] += 1
             adj[req].append(course)
 
-    # Initialize the start queue with symbols having zero in-degrees
+    # Start queue with symbols having zero in-degrees
     start_q = collections.deque([symbol for symbol, ins in in_degrees.items() if ins == 0])
     if f_print:
         print(f"Processing {s}", flush=True)
         print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
         print("JOINS: ", flush=True)
 
-    q = collections.deque()
+    # Perform topological sort
+    rules = []
     while start_q:
         symbol = start_q.popleft()
         tmap[symbol] = symbol
         for neighbor in adj[symbol]:
             in_degrees[neighbor] -= 1
             if in_degrees[neighbor] == 0:
-                q.append(neighbor)
+                start_q.append(neighbor)
 
-    rules = []
-    while q:
-        symbol = q.popleft()
-        if len(production[symbol]) == 2:
+        if symbol in production and len(production[symbol]) == 2:
             a, b = production[symbol]
             tmap[symbol] = tmap[a] + tmap[b]
             rules.append(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
-        else:
+        elif symbol in production:
             tmap[symbol] = production[symbol][0]
-        for neighbor in adj[symbol]:
-            in_degrees[neighbor] -= 1
-            if in_degrees[neighbor] == 0:
-                q.append(neighbor)
 
     if f_print:
         for rule in rules:
@@ -228,17 +214,17 @@ def extract_virtual_objects(rules):
     Returns:
         list: A list of objects found in the equations, sorted by the size of the string, excluding the last result.
     """
-    objects = set()
-    for rule in rules:
-        # Replace " + " with " = " and split the rule into individual objects
-        parts = rule.replace(" + ", " = ").split(" = ")
-        # Add the objects to the set
-        objects.update(parts)
+    if not rules:
+        return []
+
+    # Extract all objects from the rules
+    objects = {obj for rule in rules for obj in rule.replace(" + ", " = ").split(" = ")}
+
     # Remove the last result
-    if rules:
-        last_result = rules[-1].split(" = ")[-1]
-        objects.discard(last_result)
-    # Return the sorted list of objects by the size of the string
+    last_result = rules[-1].split(" = ")[-1]
+    objects.discard(last_result)
+
+    # Return the sorted list of objects by string length
     return sorted(objects, key=len)
 
 
@@ -263,6 +249,6 @@ def ai_with_pathways(s, f_print=False):
     # Extract virtual objects
     virt_obj = extract_virtual_objects(rules)
     if f_print:
-        print(f"PATH LENGTH: {ai_count}", flush=True)
-        print(f"VIRTUAL OBJECTS: {virt_obj}", flush=True)
+        print(f"path length:        {ai_count}", flush=True)
+        print(f"virtual objects:    {virt_obj}", flush=True)
     return ai_count, virt_obj, rules_to_graph(rules, virt_obj)
