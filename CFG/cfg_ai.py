@@ -1,4 +1,5 @@
 import collections
+import string
 
 import networkx as nx
 
@@ -76,57 +77,41 @@ def convert_to_cnf(start_symbol, productions):
 
     Args:
         start_symbol (str): The start symbol of the CFG.
-        productions (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols (terminals or non-terminals).
+        productions (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols.
 
     Returns:
-        tuple: A tuple containing:
-            - start_nt (str): The new start symbol for the CNF.
-            - cnf_productions (dict): A dictionary of CNF productions.
+        tuple: The new start symbol and a dictionary of CNF productions.
     """
     cnf_productions = {}
-    new_non_terminal_counter = 1
+    new_nt_counter = 1
 
-    # Identify terminal symbols in productions and start symbol
-    terminals = {s for exp in productions.values() for s in exp if s.islower()}
-    terminals.update(s for s in start_symbol if s.islower())
-
-    # Map terminals to new non-terminals and add corresponding productions
-    terminal_non_terminals = {t: f'T_{t}' for t in terminals}
-    cnf_productions.update({nt: [t] for t, nt in terminal_non_terminals.items()})
+    # Map terminals to new non-terminals
+    terminals = {s for exp in productions.values() for s in exp if s in string.ascii_lowercase}
+    terminals.update(s for s in start_symbol if s in string.ascii_lowercase)
+    terminal_map = {t: f'T_{t}' for t in terminals}
+    cnf_productions.update({nt: [t] for t, nt in terminal_map.items()})
 
     def replace_terminals(symbols):
-        """
-        Replaces terminal symbols in a list of symbols with their corresponding non-terminals.
+        return [terminal_map.get(s, s) for s in symbols]
 
-        Args:
-            symbols (list): A list of symbols (terminals or non-terminals).
-
-        Returns:
-            list: A list of symbols with terminals replaced by their corresponding non-terminals.
-        """
-        return [terminal_non_terminals.get(s, s) for s in symbols]
-
-    # Process existing productions
+    # Convert productions to CNF
     for nt, expansion in productions.items():
-        new_expansion = replace_terminals(expansion)
-        while len(new_expansion) > 2:
-            new_nt = f'N{new_non_terminal_counter}'
-            cnf_productions[new_nt] = new_expansion[:2]
-            new_expansion = [new_nt] + new_expansion[2:]
-            new_non_terminal_counter += 1
-        cnf_productions[nt] = new_expansion
+        expansion = replace_terminals(expansion)
+        while len(expansion) > 2:
+            new_nt = f'N{new_nt_counter}'
+            cnf_productions[new_nt] = expansion[:2]
+            expansion = [new_nt] + expansion[2:]
+            new_nt_counter += 1
+        cnf_productions[nt] = expansion
 
     # Handle the start symbol
     start_symbols = replace_terminals(start_symbol)
     start_nt = 'S'
-
-    # Break down the start symbol into CNF-compliant rules
     while len(start_symbols) > 2:
-        cnf_productions[f'N{new_non_terminal_counter}'] = start_symbols[:2]
-        start_symbols = [f'N{new_non_terminal_counter}'] + start_symbols[2:]
-        new_non_terminal_counter += 1
-
-    # Assign the final start symbol production
+        new_nt = f'N{new_nt_counter}'
+        cnf_productions[new_nt] = start_symbols[:2]
+        start_symbols = [new_nt] + start_symbols[2:]
+        new_nt_counter += 1
     cnf_productions[start_nt] = start_symbols
 
     return start_nt, cnf_productions
@@ -155,7 +140,7 @@ def get_rules(s, production, f_print=False):
 
     Args:
         s (str): The input string to be processed.
-        production (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols (terminals or non-terminals).
+        production (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols.
         f_print (bool): Flag to print the rules and path length.
 
     Returns:
@@ -174,11 +159,11 @@ def get_rules(s, production, f_print=False):
             adj[req].append(course)
 
     # Start queue with symbols having zero in-degrees
-    start_q = collections.deque([symbol for symbol, ins in in_degrees.items() if ins == 0])
+    start_q = collections.deque(symbol for symbol, ins in in_degrees.items() if ins == 0)
     if f_print:
         print(f"Processing {s}", flush=True)
-        print(f"START SYMBOLS: {','.join(start_q)}", flush=True)
-        print("JOINS: ", flush=True)
+        print(f"Start symbols: {', '.join(start_q)}", flush=True)
+        print("Joins:", flush=True)
 
     # Perform topological sort
     rules = []
@@ -190,16 +175,16 @@ def get_rules(s, production, f_print=False):
             if in_degrees[neighbor] == 0:
                 start_q.append(neighbor)
 
-        if symbol in production and len(production[symbol]) == 2:
-            a, b = production[symbol]
-            tmap[symbol] = tmap[a] + tmap[b]
-            rules.append(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
-        elif symbol in production:
-            tmap[symbol] = production[symbol][0]
+        if symbol in production:
+            if len(production[symbol]) == 2:
+                a, b = production[symbol]
+                tmap[symbol] = tmap[a] + tmap[b]
+                rules.append(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
+            else:
+                tmap[symbol] = production[symbol][0]
 
     if f_print:
-        for rule in rules:
-            print(rule, flush=True)
+        print("\n".join(rules), flush=True)
 
     return rules
 
@@ -231,7 +216,7 @@ def extract_virtual_objects(rules):
 def ai_with_pathways(s, f_print=False):
     """
     Takes the production rules from ai_upper. Performs a topological sort to find order
-    of join operations. Prints the proper AI joins in order.
+    of join operations.
 
     Args:
         s (str): input string to be processed.
@@ -248,7 +233,4 @@ def ai_with_pathways(s, f_print=False):
     rules = get_rules(s, production, f_print=f_print)
     # Extract virtual objects
     virt_obj = extract_virtual_objects(rules)
-    if f_print:
-        print(f"path length:        {ai_count}", flush=True)
-        print(f"virtual objects:    {virt_obj}", flush=True)
     return ai_count, virt_obj, rules_to_graph(rules, virt_obj)
