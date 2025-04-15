@@ -1,19 +1,20 @@
 import collections
 import string
+from typing import List, Tuple, Dict
 
 import networkx as nx
 
 
-def rules_to_graph(rules, virt_obj):
+def rules_to_graph(rules: List[str], virt_obj: List[str]) -> nx.DiGraph:
     """
     Converts a list of rules into a directed graph and adds virtual objects as nodes.
 
     Args:
-        rules (list): Rules in the format "A + B = C".
-        virt_obj (list): Virtual objects to be added as nodes.
+        rules (List[str]): Rules in the format "A + B = C".
+        virt_obj (List[str]): Virtual objects to be added as nodes.
 
     Returns:
-        networkx.DiGraph: Directed graph with rules and virtual objects.
+        nx.DiGraph: Directed graph with rules and virtual objects.
     """
     # Create a directed graph and add virtual objects as nodes
     graph = nx.DiGraph()
@@ -28,7 +29,7 @@ def rules_to_graph(rules, virt_obj):
     return graph
 
 
-def repair(s):
+def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     """
     Repairs the input string by replacing the most frequent adjacent pairs of symbols with new non-terminal symbols.
 
@@ -37,12 +38,12 @@ def repair(s):
 
     Returns:
         tuple: A tuple containing:
-            - symbols (list): The list of symbols after replacement.
-            - productions (dict): A dictionary of productions where keys are new non-terminal symbols and values are the pairs they replace.
+            - symbols (List[str]): The list of symbols after replacement.
+            - productions (Dict[str, List[str]]): A dictionary of productions where keys are new non-terminal symbols and values are the pairs they replace.
     """
-    symbols = list(s)
-    productions = {}
-    non_terminal_counter = 1
+    symbols: List[str] = list(s)
+    productions: Dict[str, List[str]] = {}
+    non_terminal_counter: int = 1
 
     while True:
         # Count the frequency of adjacent pairs and filter those occurring more than once
@@ -71,27 +72,27 @@ def repair(s):
     return symbols, productions
 
 
-def convert_to_cnf(start_symbol, productions):
+def convert_to_cnf(start_symbol: str, productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
     """
     Converts a context-free grammar (CFG) to Chomsky Normal Form (CNF).
 
     Args:
         start_symbol (str): The start symbol of the CFG.
-        productions (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols.
+        productions (Dict[str, List[str]]): A dictionary where keys are non-terminal symbols and values are lists of symbols.
 
     Returns:
-        tuple: The new start symbol and a dictionary of CNF productions.
+        Tuple[str, Dict[str, List[str]]]: The new start symbol and a dictionary of CNF productions.
     """
-    cnf_productions = {}
-    new_nt_counter = 1
+    cnf_productions: Dict[str, List[str]] = {}
+    new_nt_counter: int = 1
 
     # Map terminals to new non-terminals
     terminals = {s for exp in productions.values() for s in exp if s in string.ascii_lowercase}
     terminals.update(s for s in start_symbol if s in string.ascii_lowercase)
-    terminal_map = {t: f'T_{t}' for t in terminals}
+    terminal_map: Dict[str, str] = {t: f'T_{t}' for t in terminals}
     cnf_productions.update({nt: [t] for t, nt in terminal_map.items()})
 
-    def replace_terminals(symbols):
+    def replace_terminals(symbols: List[str]) -> List[str]:
         return [terminal_map.get(s, s) for s in symbols]
 
     # Convert productions to CNF
@@ -105,7 +106,7 @@ def convert_to_cnf(start_symbol, productions):
         cnf_productions[nt] = expansion
 
     # Handle the start symbol
-    start_symbols = replace_terminals(start_symbol)
+    start_symbols = replace_terminals(list(start_symbol))
     start_nt = 'S'
     while len(start_symbols) > 2:
         new_nt = f'N{new_nt_counter}'
@@ -117,7 +118,7 @@ def convert_to_cnf(start_symbol, productions):
     return start_nt, cnf_productions
 
 
-def ai_core(s):
+def ai_core(s: str) -> Tuple[int, Dict[str, List[str]]]:
     """
     Converts the input string into Chomsky Normal Form (CNF) and calculates the production count.
 
@@ -125,30 +126,30 @@ def ai_core(s):
         s (str): The input string to be processed.
 
     Returns:
-        tuple: A tuple containing:
+        Tuple[int, Dict[str, List[str]]]: A tuple containing:
             - production_count (int): The number of productions in the CNF minus the number of unique symbols in the input string.
-            - cnf_productions (dict): A dictionary of CNF productions.
+            - cnf_productions (Dict[str, List[str]]): A dictionary of CNF productions.
     """
     start_symbol, productions = repair(s)
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
     return len(cnf_productions) - len(set(s)), cnf_productions
 
 
-def get_rules(s, production, f_print=False):
+def get_rules(s: str, production: Dict[str, List[str]], f_print: bool = False) -> List[str]:
     """
     Generates a list of rules from the given production dictionary by performing a topological sort.
 
     Args:
         s (str): The input string to be processed.
-        production (dict): A dictionary where keys are non-terminal symbols and values are lists of symbols.
+        production (Dict[str, List[str]]): A dictionary where keys are non-terminal symbols and values are lists of symbols.
         f_print (bool): Flag to print the rules and path length.
 
     Returns:
-        list: A list of rules in the format "A + B = C".
+        List[str]: A list of rules in the format "A + B = C".
     """
-    in_degrees = collections.defaultdict(int)
-    adj = collections.defaultdict(list)
-    tmap = {}
+    in_degrees: Dict[str, int] = collections.defaultdict(int)
+    adj: Dict[str, List[str]] = collections.defaultdict(list)
+    tmap: Dict[str, str] = {}
 
     # Initialize in-degrees and adjacency list
     for c in s:
@@ -159,14 +160,16 @@ def get_rules(s, production, f_print=False):
             adj[req].append(course)
 
     # Start queue with symbols having zero in-degrees
-    start_q = collections.deque(symbol for symbol, ins in in_degrees.items() if ins == 0)
+    start_q: collections.deque[str] = collections.deque(
+        symbol for symbol, ins in in_degrees.items() if ins == 0
+    )
     if f_print:
         print(f"Processing {s}", flush=True)
         print(f"Start symbols: {', '.join(start_q)}", flush=True)
         print("Joins:", flush=True)
 
     # Perform topological sort
-    rules = []
+    rules: List[str] = []
     while start_q:
         symbol = start_q.popleft()
         tmap[symbol] = symbol
@@ -189,15 +192,15 @@ def get_rules(s, production, f_print=False):
     return rules
 
 
-def extract_virtual_objects(rules):
+def extract_virtual_objects(rules: List[str]) -> List[str]:
     """
     Extracts a sorted set of objects from the given list of rules, excluding the entry on the right side of the last "=".
 
     Args:
-        rules (list): A list of rules in the format "A + B = C".
+        rules (List[str]): A list of rules in the format "A + B = C".
 
     Returns:
-        list: A list of objects found in the equations, sorted by the size of the string, excluding the last result.
+        List[str]: A list of objects found in the equations, sorted by the size of the string, excluding the last result.
     """
     if not rules:
         return []
@@ -213,19 +216,20 @@ def extract_virtual_objects(rules):
     return sorted(objects, key=len)
 
 
-def ai_with_pathways(s, f_print=False):
+def ai_with_pathways(s: str, f_print: bool = False) -> Tuple[int, List[str], nx.DiGraph]:
     """
     Takes the production rules from ai_upper. Performs a topological sort to find order
     of join operations.
 
     Args:
-        s (str): input string to be processed.
-        f_print (bool): flag to print the rules and path length.
+        s (str): Input string to be processed.
+        f_print (bool): Flag to print the rules and path length.
 
     Returns:
-        ai_count (int): the final path length.
-        virt_obj (list): a list of virtual objects found in the equations, sorted by the size of the string.
-        rules (list): a list of rules in the format "A + B = C".
+        Tuple[int, List[str], nx.DiGraph]: A tuple containing:
+            - ai_count (int): The final path length.
+            - virt_obj (List[str]): A list of virtual objects found in the equations, sorted by the size of the string.
+            - rules_graph (nx.DiGraph): A directed graph representing the rules and virtual objects.
     """
     # Get the production rules and path length
     ai_count, production = ai_core(s)
