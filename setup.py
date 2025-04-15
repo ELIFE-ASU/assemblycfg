@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='CFG',
-    version='1.0.0',
+    version='1.1.0',
     author='',
     author_email='',
     description='AI calculater using smallest grammar algorithm re-pair.',
