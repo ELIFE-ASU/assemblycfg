@@ -105,3 +105,26 @@ def test_batch():
         # Check that the virtual objects are consistent with the input string
         for obj in virt_obj:
             assert obj in s_inpts[i]
+
+
+def test_joint():
+    """
+    Tests the assembly calculator's results for a set of input strings.
+
+    The function verifies that the assembly calculator produces the expected results
+    for a set of input strings by comparing the calculated results with the expected values.
+
+    Asserts:
+        - The assembly calculator result matches the expected result for the set of input strings.
+
+    Raises:
+        AssertionError: If any of the assertions fail.
+    """
+    # Test input strings
+    s_inpt = "aaaa bbbb!aa"
+    # Expected assembly calculator result
+    ai_ref = 8
+    # Get the assembly calculator result
+    ai, virt_obj, _ = CFG.ai_with_pathways(s_inpt, f_print=True, debug=True)
+    # Check if the result is correct
+    assert ai == ai_ref
