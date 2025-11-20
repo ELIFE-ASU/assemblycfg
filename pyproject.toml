@@ -1,3 +1,39 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "CFG"
+version = "1.1.0"
+description = "AI calculater using smallest grammar algorithm re-pair."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.12"
+
+# No author info was provided in setup.py, so authors is left empty.
+authors = ["Gage Siebert", "Redwan Chowdhury", "Louie Slocombe"]
+
+dependencies = [
+    "networkx>=3.4.2",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/ELIFE-ASU/CFG"
+Repository = "https://github.com/ELIFE-ASU/CFG"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
