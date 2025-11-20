@@ -1,6 +1,7 @@
-import CFG
 import matplotlib.pyplot as plt
 import networkx as nx
+
+import CFG
 
 if __name__ == '__main__':
     f_print = True

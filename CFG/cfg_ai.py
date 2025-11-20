@@ -118,7 +118,7 @@ def convert_to_cnf(start_symbol: str, productions: Dict[str, List[str]]) -> Tupl
     return start_nt, cnf_productions
 
 
-def ai_core(s: str, debug = False) -> Tuple[int, Dict[str, List[str]]]:
+def ai_core(s: str, debug=False) -> Tuple[int, Dict[str, List[str]]]:
     """
     Converts the input string into Chomsky Normal Form (CNF) and calculates the production count.
 
@@ -138,9 +138,8 @@ def ai_core(s: str, debug = False) -> Tuple[int, Dict[str, List[str]]]:
         print(f"Length of Productions: {len(productions)}", flush=True)
         print(f"CNF Productions: {cnf_productions}", flush=True)
         print(f"Length of CNF Productions: {len(cnf_productions)}", flush=True)
-    #return len(cnf_productions) - len(set(s)), cnf_productions
+    # return len(cnf_productions) - len(set(s)), cnf_productions
     return len(start_symbol) - 1 + len(productions), cnf_productions
-
 
 
 def get_rules(s: str, production: Dict[str, List[str]], f_print: bool = False) -> List[str]:
@@ -240,7 +239,7 @@ def ai_with_pathways(s: str, f_print: bool = False, debug: bool = False) -> Tupl
             - rules_graph (nx.DiGraph): A directed graph representing the rules and virtual objects.
     """
     # Get the production rules and path length
-    ai_count, production = ai_core(s, debug = debug)
+    ai_count, production = ai_core(s, debug=debug)
     # Get the rules
     rules = get_rules(s, production, f_print=f_print)
     # Extract virtual objects

@@ -1,7 +1,9 @@
 import random
 from collections import Counter
+
 import networkx as nx
 import numpy as np
+
 from .utils import get_disconnected_subgraphs
 
 
@@ -273,7 +275,6 @@ def calculate_assembly_path_det(graph, iterations=1, debug=False):
 
     # Extract all original units (vertex color-edge color-vertex color triples) from the graph
     purged_graph, unique_units = purge_unique_units(graph)
-                
 
     # Initialise best path vars
     best_path_length = np.inf
