@@ -10,11 +10,7 @@ import assemblytheorytools as att
 
 def test_basic_ai():
     """
-    Test the calculation of the assembly index using both the CFG and DET approaches.
-
-    This function defines a simple graph, converts it to a NetworkX graph, and calculates
-    the assembly index using two different approaches: CFG and DET. It then prints the
-    results and asserts that both assembly indices are greater than 1.
+    Test the calculation of the assembly index using the DET method. 
     """
     print(flush=True)
     # Define the graph
@@ -37,7 +33,7 @@ def test_basic_ai():
 
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
 
     # Assert that both assembly indices are greater than 1
     assert L_det > 1
@@ -46,16 +42,6 @@ def test_basic_ai():
 def test_basic_joint_ai():
     """
     Test the calculation of the assembly index for a joint system of molecules.
-
-    This function splits a string of SMILES representations into individual molecules,
-    converts them to RDKit molecules, then to NetworkX graphs, and joins these graphs
-    into a single graph. It calculates the assembly index using three different approaches
-    and asserts that the results are equal.
-
-    Asserts:
-        The assembly index calculated by `att.calculate_assembly_index` is equal to the
-        assembly index calculated by `CFGgraph.calculate_assembly_index_ga` and
-        `CFGgraph.calculate_assembly_path_det`.
     """
     print(flush=True)
     molecules = "O=C=O.C.O.N"
@@ -72,22 +58,13 @@ def test_basic_joint_ai():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     assert L_det >= ai
 
 
 def test_det_cyclobutane():
     """
     Test the calculation of the assembly index for cyclobutane.
-
-    This function converts a SMILES string representing cyclobutane to an RDKit molecule,
-    then to a NetworkX graph. It calculates the assembly index using three different approaches
-    (default, CFG, and DET) and prints the results. It then removes hydrogen atoms from the graph,
-    recalculates the assembly index using the same three approaches, and prints the results.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are equal to the default approach,
-        both with and without hydrogen atoms.
     """
     print(flush=True)
     smi = "C1CCC1"
@@ -100,7 +77,7 @@ def test_det_cyclobutane():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
 
     print("Without hydrogen...", flush=True)
     graph = att.remove_hydrogen_from_graph(graph)
@@ -111,7 +88,7 @@ def test_det_cyclobutane():
     L_det_nh, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai_nh}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det_nh}", flush=True)
+    print(f"Path Length (DET)    : {L_det_nh}", flush=True)
 
     # Assert that the assembly indices are equal
     assert L_det >= ai
@@ -121,13 +98,6 @@ def test_det_cyclobutane():
 def test_long_boi():
     """
     Test the calculation of the assembly index for a long alkane chain.
-
-    This function converts a SMILES string representing a long alkane chain to an RDKit molecule,
-    then to a NetworkX graph. It calculates the assembly index using three different approaches
-    (default, CFG, and DET) and prints the results.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are equal to the default approach.
     """
     print(flush=True)
     smi = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
@@ -141,21 +111,14 @@ def test_long_boi():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     # Assert that the assembly indices are equal
     assert L_det >= ai
 
 
 def test_benzene():
     """
-    Test the calculation of the assembly index for benzene.
-
-    This function converts a SMILES string representing benzene to an RDKit molecule,
-    then to a NetworkX graph. It calculates the assembly index using three different approaches
-    (default, CFG, and DET) and prints the results.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are equal to the default approach.
+    Test DET on benzene.
     """
     print(flush=True)
     smi = "c1ccccc1"
@@ -167,23 +130,14 @@ def test_benzene():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     # Assert that the assembly indices are equal
     assert L_det >= ai
 
 
 def test_tryptophan():
     """
-    Test the calculation of the assembly index for tryptophan.
-
-    This function converts a SMILES string representing tryptophan to an RDKit molecule,
-    then to a NetworkX graph. It removes hydrogen atoms from the graph and calculates the
-    assembly index using three different approaches (default, CFG, and DET). It prints the
-    results and asserts that the assembly indices calculated by the CFG and DET approaches
-    are equal to the default approach.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are equal to the default approach.
+    Test det on tryptophan.
     """
     print(flush=True)
     smi = "c1[nH]c2ccccc2c1C[C@H](N)C(=O)O"
@@ -197,7 +151,7 @@ def test_tryptophan():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     # Assert that the assembly indices are equal
     assert L_det >= ai
 
@@ -205,15 +159,6 @@ def test_tryptophan():
 def test_tryptophan_iterations():
     """
     Test the iterated calculation of short assembly paths for tryptophan.
-
-    This function converts a SMILES string representing tryptophan to an RDKit molecule,
-    then to a NetworkX graph. It removes hydrogen atoms from the graph and calculates the
-    assembly index using three different approaches (default, CFG, and DET). It prints the
-    results and asserts that the assembly indices calculated by the CFG and DET approaches
-    are equal to the default approach.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are equal to the default approach.
     """
     print(flush=True)
     smi = "c1[nH]c2ccccc2c1C[C@H](N)C(=O)O"
@@ -227,7 +172,7 @@ def test_tryptophan_iterations():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph, iterations=100)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     assert L_det >= ai
 
 
@@ -235,7 +180,6 @@ def test_tryptophan_iterations():
 def test_paclitaxel():
     """
     Test the bounding of assembly index of paclitaxel.
-
     """
     print(flush=True)
     smi = "CC1=C2[C@@]([C@]([C@H]([C@@H]3[C@]4([C@H](OC4)C[C@@H]([C@]3(C(=O)[C@@H]2OC(=O)C)C)O)OC(=O)C)OC(=O)c5ccccc5)(C[C@@H]1OC(=O)[C@H](O)[C@@H](NC(=O)c6ccccc6)c7ccccc7)O)(C)C"
@@ -249,21 +193,14 @@ def test_paclitaxel():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph)
     # Print the assembly indices
     print(f"Assembly Index (asscpp) : {ai}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     # Assert that the assembly indices are equal
     assert L_det >= ai
 
 
 def test_loads_joint():
     """
-    Test the calculation of the assembly index for a list of joint molecules.
-
-    This function converts a list of SMILES strings representing various molecules to RDKit molecules,
-    then to NetworkX graphs. It joins these graphs into a single graph and calculates the assembly index
-    using two different approaches (CFG and DET). It prints the results and the execution time for each approach.
-
-    Asserts:
-        The assembly indices calculated by the CFG and DET approaches are greater than 2.
+    Test det a list of molecules.
     """
     print(flush=True)
 
@@ -383,7 +320,7 @@ def test_amino_acids():
     L_det, _, _ = CFGgraph.calculate_assembly_path_det(graph_joint, iterations=10000)
     print(flush=True)
     print(f"Assembly Index (asscpp) : {jai_ref}", flush=True)
-    print(f"Assembly Index (DET)    : {L_det}", flush=True)
+    print(f"Path Length (DET)    : {L_det}", flush=True)
     assert L_det >= jai_ref
 
 
