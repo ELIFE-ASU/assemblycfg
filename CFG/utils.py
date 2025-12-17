@@ -35,6 +35,65 @@ def safe_standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     return mol
 
 
+def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> Chem.Mol:
+    """
+    Convert a SMILES string to an RDKit molecule object.
+
+    This function takes a SMILES (Simplified Molecular Input Line Entry System) string
+    and converts it into an RDKit molecule object. Optionally, the molecule can be
+    sanitized and explicit hydrogens can be added.
+
+    Parameters:
+    -----------
+    smi : str
+        A SMILES string representing the molecular structure.
+    add_hydrogens : bool, optional
+        If True, adds explicit hydrogens to the molecule during sanitization. Defaults to True.
+    sanitize : bool, optional
+        If True, sanitizes the molecule after conversion. Defaults to True.
+
+    Returns:
+    --------
+    Chem.Mol
+        An RDKit molecule object representing the input SMILES string.
+
+    Raises:
+    -------
+    Warning
+        If the SMILES string contains disconnected molecules (indicated by a '.' character).
+
+    Notes:
+    ------
+    - The function uses RDKit's `MolFromSmiles` to create the molecule object.
+    - Sanitization ensures the molecule is chemically valid and standardized.
+    - Disconnected molecules in the SMILES string are flagged with a warning.
+    """
+    if '.' in smi:
+        warnings.warn("Disconnected molecules detected in SMILES string. Ensure proper handling of these molecules.")
+    # Convert the SMILES string to an RDKit molecule object
+    mol = Chem.MolFromSmiles(smi, sanitize=False)
+    # Sanitise the molecule
+    if sanitize:
+        return safe_standardize_mol(mol, add_hydrogens=add_hydrogens)
+    else:
+        return mol
+
+
+def smi_to_nx(smi: str, add_hydrogens: bool = True) -> nx.Graph:
+    """
+    Convert a SMILES string to a NetworkX graph.
+
+    Args:
+        smi (str): The SMILES string representing the molecule.
+        add_hydrogens (bool, optional): Whether to keep hydrogen atoms in the graph. Default is True.
+
+    Returns:
+        nx.Graph: The resulting NetworkX graph where nodes represent atoms and edges represent bonds.
+    """
+    mol = smi_to_mol(smi, add_hydrogens=add_hydrogens)
+    return mol_to_nx(mol, add_hydrogens=add_hydrogens)
+
+
 def mol_to_nx(mol: Chem.Mol, add_hydrogens: bool = True) -> nx.Graph:
     """
     Convert an RDKit molecule to a NetworkX graph.
