@@ -5,11 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "CFG"
 version = "1.1.0"
-description = "AI calculater using smallest grammar algorithm re-pair."
+description = "AI bounds using smallest grammar algorithm re-pair."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
 
-# No author info was provided in setup.py, so authors is left empty.
 authors = [
     { name = "Gage Siebert" },
     { name = "Redwan Chowdhury" },
@@ -18,6 +17,8 @@ authors = [
 
 dependencies = [
     "networkx>=3.4.2",
+    "matplotlib>=3.10.1",
+    "rdkit>=2025.3.3",
 ]
 
 classifiers = [
