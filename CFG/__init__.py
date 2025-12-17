@@ -4,6 +4,7 @@ from .det import (calculate_assembly_path_det)
 
 from .utils import (mol2graph,
                     dict_to_nx,
-                    print_virtual_objects)
+                    print_virtual_objects,
+                    smi_to_nx)
 
 __version__ = "1.1.0"

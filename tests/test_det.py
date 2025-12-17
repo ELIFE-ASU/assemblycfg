@@ -4,7 +4,6 @@ import networkx as nx
 import pytest
 
 import CFG
-import CFG.utils as utils
 
 
 def test_basic():
@@ -43,7 +42,7 @@ def test_basic_joint():
     molecules = "O=C=O.C.O.N"
     molecules = molecules.split(".")
     # Convert all the SMILES to networkX graphs
-    graphs = [utils.smi_to_nx(smile) for smile in molecules]
+    graphs = [CFG.smi_to_nx(smile) for smile in molecules]
     # Join the graphs into a single graph
     graph = nx.disjoint_union_all(graphs)
 
@@ -61,13 +60,13 @@ def test_det_cyclobutane():
     """
     print(flush=True)
     smi = "C1CCC1"
-    graph = utils.smi_to_nx(smi)
+    graph = CFG.smi_to_nx(smi)
 
     L_det, _, _ = CFG.calculate_assembly_path_det(graph)
     print(f"Path Length (DET)    : {L_det}", flush=True)
 
     print("Without hydrogen...", flush=True)
-    graph = utils.smi_to_nx(smi, add_hydrogens=False)
+    graph = CFG.smi_to_nx(smi, add_hydrogens=False)
 
     # Calculate the assembly index using the DET approach
     L_det_nh, _, _ = CFG.calculate_assembly_path_det(graph)
@@ -84,7 +83,7 @@ def test_long_boi():
     """
     print(flush=True)
     smi = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-    graph = utils.smi_to_nx(smi, add_hydrogens=False)
+    graph = CFG.smi_to_nx(smi, add_hydrogens=False)
 
     L_det, _, _ = CFG.calculate_assembly_path_det(graph)
 
@@ -100,7 +99,7 @@ def test_benzene():
     """
     print(flush=True)
     smi = "c1ccccc1"
-    graph = utils.smi_to_nx(smi)
+    graph = CFG.smi_to_nx(smi)
     L_det, _, _ = CFG.calculate_assembly_path_det(graph)
     print(f"Path Length (DET)    : {L_det}", flush=True)
     # Assert that the path is no shorter than the assembly index
@@ -113,7 +112,7 @@ def test_tryptophan():
     """
     print(flush=True)
     smi = "c1[nH]c2ccccc2c1C[C@H](N)C(=O)O"
-    graph = utils.smi_to_nx(smi, add_hydrogens=False)
+    graph = CFG.smi_to_nx(smi, add_hydrogens=False)
     L_det, _, _ = CFG.calculate_assembly_path_det(graph)
 
     print(f"Path Length (DET)    : {L_det}", flush=True)
@@ -127,7 +126,7 @@ def test_tryptophan_iterations():
     """
     print(flush=True)
     smi = "c1[nH]c2ccccc2c1C[C@H](N)C(=O)O"
-    graph = utils.smi_to_nx(smi, add_hydrogens=False)
+    graph = CFG.smi_to_nx(smi, add_hydrogens=False)
     L_det, _, _ = CFG.calculate_assembly_path_det(graph, iterations=100)
 
     print(f"Path Length (DET)    : {L_det}", flush=True)
@@ -197,7 +196,7 @@ def test_loads_joint():
         'N#N'  # N2
     ]
     # Convert all the SMILES to NetworkX graphs
-    graphs = [utils.smi_to_nx(smi) for smi in smiles_list]
+    graphs = [CFG.smi_to_nx(smi) for smi in smiles_list]
     # Join the graphs
     graph = nx.disjoint_union_all(graphs)
 
@@ -237,7 +236,7 @@ def test_amino_acids():
     jai_ref = 37
 
     # Convert all the SMILES to NetworkX graphs
-    graphs = [utils.smi_to_nx(smile, add_hydrogens=False) for smile in smiles_list]
+    graphs = [CFG.smi_to_nx(smile, add_hydrogens=False) for smile in smiles_list]
     # Join the graphs
     graph_joint = nx.disjoint_union_all(graphs)
 
