@@ -5,16 +5,37 @@ from typing import List, Tuple, Dict
 import networkx as nx
 
 
-def rules_to_graph(rules: List[str], virt_obj: List[str]) -> nx.DiGraph:
+def rules_to_graph(rules: List[str],
+                   virt_obj: List[str]) -> nx.DiGraph:
     """
-    Converts a list of rules into a directed graph and adds virtual objects as nodes.
+    Convert a list of join rules into a NetworkX directed graph and add virtual nodes.
 
-    Args:
-        rules (List[str]): Rules in the format "A + B = C".
-        virt_obj (List[str]): Virtual objects to be added as nodes.
+    Parses rules in the form ``"A + B = C"`` and adds directed edges ``A -> C`` and
+    ``B -> C`` for each rule. Virtual objects are added to the graph as isolated
+    nodes (if not already present).
 
-    Returns:
-        nx.DiGraph: Directed graph with rules and virtual objects.
+    Parameters
+    ----------
+    rules : list of str
+        Sequence of rules where each rule is expected to contain two operands and
+        a result using the literal separators ``' + '`` and `` = '`` (e.g.
+        ``"A + B = C"``). Empty list is accepted and yields a graph containing only
+        the provided ``virt_obj`` nodes.
+    virt_obj : list of str
+        Sequence of virtual object identifiers to be added as nodes to the graph.
+        Nodes that also appear in parsed rules are not duplicated.
+
+    Returns
+    -------
+    networkx.DiGraph
+        A directed graph with nodes for all operands, results and virtual objects.
+        For each rule ``"A + B = C"`` there will be edges ``A -> C`` and ``B -> C``.
+
+    Raises
+    ------
+    ValueError
+        If a rule does not contain exactly two operands and one result when split
+        using the expected separators (e.g. malformed string).
     """
     # Create a directed graph and add virtual objects as nodes
     graph = nx.DiGraph()
@@ -31,15 +52,34 @@ def rules_to_graph(rules: List[str], virt_obj: List[str]) -> nx.DiGraph:
 
 def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     """
-    Repairs the input string by replacing the most frequent adjacent pairs of symbols with new non-terminal symbols.
+    Iteratively replace the most frequent adjacent symbol pairs in a string with new non-terminal symbols.
 
-    Args:
-        s (str): The input string to be repaired.
+    Scans the input string for adjacent symbol pairs, identifies pairs that occur more than
+    once, and replaces the most frequent pair with a freshly introduced non-terminal
+    (e.g. ``A1``, ``A2``). Replacements are applied repeatedly until no pair occurs
+    more than once. Returns the resulting symbol sequence and a mapping of introduced
+    non-terminals to the pair they replaced.
 
-    Returns:
-        tuple: A tuple containing:
-            - symbols (List[str]): The list of symbols after replacement.
-            - productions (Dict[str, List[str]]): A dictionary of productions where keys are new non-terminal symbols and values are the pairs they replace.
+    Parameters
+    ----------
+    s : str
+        Input string of symbols (each character treated as a symbol). The function
+        operates on single-character symbols and produces new multi-character
+        non-terminal symbols of the form ``A{n}``.
+
+    Returns
+    -------
+    symbols : list of str
+        Sequence of symbols after all replacements. Contains original terminal
+        symbols and introduced non-terminal symbols (strings like ``'A1'``).
+    productions : dict
+        Mapping from introduced non-terminal symbol to the two-symbol list it
+        replaces, e.g. ``{'A1': ['a', 'b']}``.
+
+    Raises
+    ------
+    TypeError
+        If ``s`` is not a string.
     """
     symbols: List[str] = list(s)
     productions: Dict[str, List[str]] = {}
@@ -72,16 +112,41 @@ def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     return symbols, productions
 
 
-def convert_to_cnf(start_symbol: str, productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
+def convert_to_cnf(start_symbol: str,
+                   productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
     """
-    Converts a context-free grammar (CFG) to Chomsky Normal Form (CNF).
+    Convert a context-free grammar (CFG) to Chomsky Normal Form (CNF).
 
-    Args:
-        start_symbol (str): The start symbol of the CFG.
-        productions (Dict[str, List[str]]): A dictionary where keys are non-terminal symbols and values are lists of symbols.
+    Transforms the given productions by:
+    - mapping lowercase terminal symbols to fresh terminal non-terminals of the form ``T_<symbol>``;
+    - introducing new non-terminals ``N<n>`` to break right-hand sides longer than two into binary rules;
+    - ensuring a single start non-terminal (``S``) whose right-hand side has length one or two.
 
-    Returns:
-        Tuple[str, Dict[str, List[str]]]: The new start symbol and a dictionary of CNF productions.
+    Parameters
+    ----------
+    start_symbol : str
+        The start symbol or start sequence of symbols for the grammar.
+    productions : dict
+        Mapping from non-terminal symbols (keys) to lists of symbols (values). Each value is a list
+        representing the right-hand side of a production. Terminals are assumed to be lowercase ASCII
+        characters; other strings are treated as non-terminals.
+
+    Returns
+    -------
+    start_nt : str
+        The new start non-terminal (conventionally ``S``).
+    cnf_productions : dict
+        A dictionary mapping non-terminals to CNF-compliant right-hand sides. Right-hand sides are
+        either a single terminal non-terminal (e.g. ``['T_a']``) or two non-terminals (e.g. ``['N1', 'B']``).
+        Terminal mappings for each original terminal are included as productions (``'T_a': ['a']``).
+
+    Raises
+    ------
+    TypeError
+        If ``start_symbol`` is not a string or if ``productions`` is not a mapping of non-terminals to lists.
+    ValueError
+        If a production contains an empty right-hand side.
+
     """
     cnf_productions: Dict[str, List[str]] = {}
     new_nt_counter: int = 1
@@ -118,17 +183,41 @@ def convert_to_cnf(start_symbol: str, productions: Dict[str, List[str]]) -> Tupl
     return start_nt, cnf_productions
 
 
-def ai_core(s: str, debug=False) -> Tuple[int, Dict[str, List[str]]]:
+def ai_core(s: str,
+            debug=False) -> Tuple[int, Dict[str, List[str]]]:
     """
-    Converts the input string into Chomsky Normal Form (CNF) and calculates the production count.
+    Convert an input string into Chomsky Normal Form (CNF) and compute a production count.
 
-    Args:
-        s (str): The input string to be processed.
+    This function performs a two-stage transformation: it first derives a set of
+    productions and an augmented start symbol using the `repair` routine, then
+    transforms those productions into CNF using `convert_to_cnf`. It also returns
+    a scalar measure (`ai_count`) derived from the intermediate start symbol and
+    the number of introduced productions.
 
-    Returns:
-        Tuple[int, Dict[str, List[str]]]: A tuple containing:
-            - production_count (int): The number of productions in the CNF minus the number of unique symbols in the input string.
-            - cnf_productions (Dict[str, List[str]]): A dictionary of CNF productions.
+    Parameters
+    ----------
+    s : str
+        Input string of symbols to be processed. Each character is treated as a
+        terminal symbol for the initial `repair` pass.
+    debug : bool, optional
+        If True, print intermediate values (start symbol, productions, CNF
+        productions and their lengths) to stdout for debugging. Default is False.
+
+    Returns
+    -------
+    ai_count : int
+        Integer count computed as `len(start_symbol) - 1 + len(productions)` where
+        `start_symbol` and `productions` are the outputs of `repair(s)`. Intended
+        as a simple complexity/path-length metric used by downstream logic.
+    cnf_productions : dict
+        Mapping of non-terminal symbols to CNF-compliant right-hand sides. Each
+        value is a list of one terminal-nonterminal mapping (e.g. ``['T_a']``) or
+        two non-terminals (e.g. ``['N1', 'B']``).
+
+    Raises
+    ------
+    TypeError
+        If ``s`` is not a string.
     """
     start_symbol, productions = repair(s)
     start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
@@ -142,17 +231,45 @@ def ai_core(s: str, debug=False) -> Tuple[int, Dict[str, List[str]]]:
     return len(start_symbol) - 1 + len(productions), cnf_productions
 
 
-def get_rules(s: str, production: Dict[str, List[str]], f_print: bool = False) -> List[str]:
+def get_rules(s: str,
+              production: Dict[str, List[str]],
+              f_print: bool = False) -> List[str]:
     """
-    Generates a list of rules from the given production dictionary by performing a topological sort.
+    Generate join rules from productions by performing a topological sort.
 
-    Args:
-        s (str): The input string to be processed.
-        production (Dict[str, List[str]]): A dictionary where keys are non-terminal symbols and values are lists of symbols.
-        f_print (bool): Flag to print the rules and path length.
+    Performs a Kahn-style topological traversal over the dependency graph
+    defined by `production` and the initial symbols in `s`. Builds string
+    mappings for intermediate non-terminals and emits join rules of the form
+    ``"<left> + <right> = <result>"`` when a non-terminal expands to two symbols.
 
-    Returns:
-        List[str]: A list of rules in the format "A + B = C".
+    Parameters
+    ----------
+    s : str
+        Input sequence of terminal symbols that seed the dependency graph.
+    production : dict
+        Mapping from non-terminal symbol to its right-hand side as a list of
+        symbols. Right-hand sides are expected to be length 1 or 2. Keys that
+        appear in `production` are treated as nodes that depend on the symbols in
+        their value list.
+    f_print : bool, optional
+        If True, print processing diagnostics (start symbols, joins) to stdout.
+        Default is False.
+
+    Returns
+    -------
+    rules : list of str
+        List of join rules in topologically valid order. Each rule is formatted
+        as ``"A + B = C"`` where ``A`` and ``B`` are the left-hand constituents and
+        ``C`` is the computed result string for the non-terminal.
+
+    Raises
+    ------
+    TypeError
+        If ``s`` is not a string or ``production`` is not a mapping-like object.
+    ValueError
+        If the dependency graph contains a cycle, the returned rules may be
+        incomplete; callers should validate acyclicity prior to calling if full
+        coverage is required.
     """
     in_degrees: Dict[str, int] = collections.defaultdict(int)
     adj: Dict[str, List[str]] = collections.defaultdict(list)
@@ -201,13 +318,20 @@ def get_rules(s: str, production: Dict[str, List[str]], f_print: bool = False) -
 
 def extract_virtual_objects(rules: List[str]) -> List[str]:
     """
-    Extracts a sorted set of objects from the given list of rules, excluding the entry on the right side of the last "=".
+    Extract virtual objects from a list of join rules, excluding the final rule's result.
 
-    Args:
-        rules (List[str]): A list of rules in the format "A + B = C".
+    Parameters
+    ----------
+    rules : list of str
+        Sequence of join rules formatted as ``"A + B = C"``. An empty sequence
+        results in an empty list.
 
-    Returns:
-        List[str]: A list of objects found in the equations, sorted by the size of the string, excluding the last result.
+    Returns
+    -------
+    virt_objs : list of str
+        Sorted list of unique object identifiers found in the rules, excluding the
+        right-hand side (result) of the last rule. Sorting is by string length
+        (ascending).
     """
     if not rules:
         return []
@@ -225,18 +349,38 @@ def extract_virtual_objects(rules: List[str]) -> List[str]:
 
 def ai_with_pathways(s: str, f_print: bool = False, debug: bool = False) -> Tuple[int, List[str], nx.DiGraph]:
     """
-    Takes the production rules from ai_upper. Performs a topological sort to find order
-    of join operations.
+    Compute pathway information from an input string: path length, virtual objects, and a rules graph.
 
-    Args:
-        s (str): Input string to be processed.
-        f_print (bool): Flag to print the rules and path length.
+    Performs grammar repair and CNF conversion via `ai_core`, derives join rules with `get_rules`,
+    extracts virtual objects with `extract_virtual_objects`, and builds a directed graph of rules
+    with `rules_to_graph`.
 
-    Returns:
-        Tuple[int, List[str], nx.DiGraph]: A tuple containing:
-            - ai_count (int): The final path length.
-            - virt_obj (List[str]): A list of virtual objects found in the equations, sorted by the size of the string.
-            - rules_graph (nx.DiGraph): A directed graph representing the rules and virtual objects.
+    Parameters
+    ----------
+    s : str
+        Input string to be processed. Each character is treated as an initial terminal symbol.
+    f_print : bool, optional
+        If True, print join-rule processing diagnostics and the computed rules. Default is False.
+    debug : bool, optional
+        If True, enable debug printing in the underlying `ai_core` stage. Default is False.
+
+    Returns
+    -------
+    ai_count : int
+        Integer path-length metric returned by `ai_core` (heuristic count of introduced productions
+        and start-symbol length).
+    virt_obj : list of str
+        Sorted list of virtual object identifiers extracted from the join rules (excluding the final
+        rule result). Sorted by string length ascending.
+    rules_graph : networkx.DiGraph
+        Directed graph representing join relationships. For each join rule ``"A + B = C"`` there
+        are edges ``A -> C`` and ``B -> C``; virtual objects are added as isolated nodes when present.
+
+    Raises
+    ------
+    TypeError
+        If ``s`` is not a string. Underlying routines may raise additional errors for malformed
+        productions or rules.
     """
     # Get the production rules and path length
     ai_count, production = ai_core(s, debug=debug)

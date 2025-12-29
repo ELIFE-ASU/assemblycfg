@@ -4,18 +4,35 @@ import networkx as nx
 from rdkit import Chem
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
+import warnings
 
 
 def safe_standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     """
-    Standardise the given RDKit molecule with additional safety checks.
+    Standardize an RDKit molecule with relaxed safety checks and optional hydrogen addition.
 
-    Args:
-        mol (rdkit.Chem.Mol): The input RDKit molecule to be standardised.
-        add_hydrogens (bool, optional): Whether to add hydrogens to the molecule. Default is True.
+    Performs a sequence of RDKit normalisation and sanitisation steps intended to
+    be more tolerant of imperfect input molecules: property-cache update without
+    strict checking, explicit conjugation/hybridisation setting, selective
+    sanitisation that omits cleanup/property operations, in-place normalisation
+    via MolStandardize, kekulisation, and optional hydrogen addition.
 
-    Returns:
-        rdkit.Chem.Mol: The standardised RDKit molecule.
+    Parameters
+    ----------
+    mol : rdkit.Chem.Mol
+        Input RDKit molecule to standardize. The function operates in-place on
+        the provided molecule object for most operations but may return a new
+        molecule instance when hydrogens are added.
+    add_hydrogens : bool, optional
+        If True, explicit hydrogens are added to the molecule using
+        ``Chem.AddHs`` after sanitisation and kekulisation. Default is True.
+
+    Returns
+    -------
+    rdkit.Chem.Mol
+        The standardized RDKit molecule. If ``add_hydrogens`` is True a new
+        molecule instance that includes explicit hydrogens may be returned;
+        otherwise the original (mutated) molecule is returned.
     """
     # Update the molecule's property cache without strict checking
     mol.UpdatePropertyCache(strict=False)
@@ -81,14 +98,37 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> C
 
 def smi_to_nx(smi: str, add_hydrogens: bool = True) -> nx.Graph:
     """
-    Convert a SMILES string to a NetworkX graph.
+    Convert a SMILES string to a NetworkX molecular graph.
+    
+    Reads a SMILES string, converts it to an RDKit ``Mol`` using
+    ``smi_to_mol`` (which performs optional sanitisation and hydrogen
+    addition), then converts the resulting molecule into a NetworkX graph
+    via ``mol_to_nx``.
 
-    Args:
-        smi (str): The SMILES string representing the molecule.
-        add_hydrogens (bool, optional): Whether to keep hydrogen atoms in the graph. Default is True.
+    Parameters
+    ----------
+    smi : str
+        SMILES string describing the molecular structure.
+    add_hydrogens : bool, optional
+        If True (default), explicit hydrogens produced during molecule
+        standardisation are preserved in the resulting graph. If False,
+        hydrogen nodes will be removed from the graph.
 
-    Returns:
-        nx.Graph: The resulting NetworkX graph where nodes represent atoms and edges represent bonds.
+    Returns
+    -------
+    networkx.Graph
+        Undirected NetworkX graph where each node id is the RDKit atom
+        index and each node has a ``'color'`` attribute (atomic symbol).
+        Edges represent bonds and carry an integer ``'color'`` attribute
+        encoding bond order.
+
+    Raises
+    ------
+    TypeError
+        If ``smi`` is not a ``str``.
+    ValueError
+        If RDKit fails to parse the SMILES into a valid molecule (for
+        example when ``smi_to_mol`` returns ``None``).
     """
     mol = smi_to_mol(smi, add_hydrogens=add_hydrogens)
     return mol_to_nx(mol, add_hydrogens=add_hydrogens)
@@ -98,12 +138,37 @@ def mol_to_nx(mol: Chem.Mol, add_hydrogens: bool = True) -> nx.Graph:
     """
     Convert an RDKit molecule to a NetworkX graph.
 
-    Args:
-        mol (Chem.Mol): The RDKit molecule to convert.
-        add_hydrogens (bool, optional): Whether to keep hydrogen atoms in the graph. Default is True.
+    Constructs an undirected NetworkX graph from an RDKit ``Mol`` by first
+    standardizing the molecule (via ``safe_standardize_mol``), creating a node
+    for each atom (node id = RDKit atom index) with a ``'color'`` node attribute
+    set to the atom symbol, and adding edges for each bond with an integer
+    ``'color'`` attribute representing bond order.
 
-    Returns:
-        nx.Graph: The resulting NetworkX graph where nodes represent atoms and edges represent bonds.
+    Parameters
+    ----------
+    mol : rdkit.Chem.Mol
+        RDKit molecule to convert. The function will call ``safe_standardize_mol``
+        on this object; callers should pass a valid RDKit ``Mol`` instance.
+    add_hydrogens : bool, optional
+        If True (default), hydrogens produced by standardisation are kept in the
+        resulting graph. If False, hydrogen nodes are removed after graph
+        construction via ``remove_hydrogen_from_graph``.
+
+    Returns
+    -------
+    networkx.Graph
+        Undirected graph where node identifiers are RDKit atom indices (integers)
+        and each node has a ``'color'`` attribute (atom symbol). Edges correspond
+        to bonds and carry a ``'color'`` attribute containing the bond order as
+        an integer (converted with ``bond_order_rdkit_to_int``).
+
+    Raises
+    ------
+    TypeError
+        If ``mol`` is not an RDKit ``Mol`` instance.
+    ValueError
+        If molecule parsing or standardisation fails (for example when RDKit
+        returns ``None`` for the input).
     """
 
     mol = safe_standardize_mol(mol, add_hydrogens=add_hydrogens)
@@ -125,13 +190,30 @@ def mol_to_nx(mol: Chem.Mol, add_hydrogens: bool = True) -> nx.Graph:
 
 def remove_hydrogen_from_graph(graph: nx.Graph) -> nx.Graph:
     """
-    Remove all hydrogen atoms from a NetworkX graph.
+    Remove all hydrogen atoms from a NetworkX molecular graph.
 
-    Args:
-        graph (nx.Graph): The input NetworkX graph where nodes represent atoms.
+    Removes nodes whose ``'color'`` node attribute equals ``'H'``. The operation
+    is performed by iterating over a static list of node identifiers to allow
+    in-place removal without iterator invalidation.
 
-    Returns:
-        nx.Graph: The modified graph with all hydrogen atoms removed.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Input NetworkX graph where nodes represent atoms and each node has a
+        ``'color'`` attribute containing the atomic symbol (e.g. ``'C'``, ``'H'``).
+
+    Returns
+    -------
+    networkx.Graph
+        The same graph instance with all hydrogen nodes removed. The function
+        mutates the provided graph and also returns it for convenience.
+
+    Raises
+    ------
+    TypeError
+        If ``graph`` is not a ``networkx.Graph`` instance.
+    KeyError
+        If a node in ``graph`` does not have a ``'color'`` attribute.
     """
     nodes = list(graph.nodes())
     for node in nodes:
@@ -142,13 +224,32 @@ def remove_hydrogen_from_graph(graph: nx.Graph) -> nx.Graph:
 
 def bond_order_rdkit_to_int(bond_type: Chem.BondType) -> int:
     """
-    Convert RDKit's BondType to a bond order int.
+    Convert an RDKit bond type to an integer bond order.
 
-    Args:
-        bond_type (Chem.BondType): The RDKit BondType to convert.
+    Maps common RDKit ``BondType`` values to integer bond orders used in
+    graph-based representations. Unknown or unhandled bond types return a
+    conservative default of ``1``.
 
-    Returns:
-        int: The corresponding bond order int.
+    Parameters
+    ----------
+    bond_type : rdkit.Chem.rdchem.BondType or Chem.BondType
+        RDKit bond type object (for example as returned by ``bond.GetBondType()``).
+
+    Returns
+    -------
+    int
+        Integer bond order corresponding to ``bond_type``. Typical mappings:
+        - ``BondType.SINGLE`` -> 1
+        - ``BondType.DOUBLE`` -> 2
+        - ``BondType.TRIPLE`` -> 3
+        - ``BondType.QUADRUPLE`` -> 4
+        - ``BondType.QUINTUPLE`` -> 5
+        - ``BondType.IONIC`` -> 6
+        If ``bond_type`` is not recognized the function returns ``1`` as a default.
+
+    Raises
+    ------
+    None
     """
     converter = {
         Chem.rdchem.BondType.SINGLE: 1,
@@ -163,28 +264,68 @@ def bond_order_rdkit_to_int(bond_type: Chem.BondType) -> int:
 
 def get_disconnected_subgraphs(graph: nx.Graph) -> List[nx.Graph]:
     """
-    Return subgraphs of connected components without copying if not necessary.
+    Return subgraphs for each connected component of a NetworkX graph.
 
-    Args:
-        graph (nx.Graph): The input graph.
+    Constructs a list of subgraph views corresponding to every connected component
+    in the input graph. The returned subgraphs are views into the original graph
+    when possible (they are not deep copies); call ``.copy()`` on each subgraph if
+    an independent copy is required.
 
-    Returns:
-        List[nx.Graph]: A list of subgraphs, each representing a connected component.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Input undirected graph whose connected components will be extracted.
+
+    Returns
+    -------
+    List[nx.Graph]
+        A list of subgraph objects (one per connected component). Each subgraph
+        contains the nodes and edges that belong to that component. Modifications
+        to the original graph may affect these subgraph views.
+
+    Raises
+    ------
+    TypeError
+        If ``graph`` is not a ``networkx.Graph`` instance.
     """
     return [graph.subgraph(c) for c in nx.connected_components(graph)]
 
 
 def molfile_to_mol(mol: str, add_hydrogens: bool = True, safe_sanitise: bool = False) -> Chem.Mol:
     """
-    Convert a Molfile to a standardized RDKit molecule.
+    Convert a Molfile (file path) to a standardized RDKit molecule.
 
-    Args:
-        mol (str): The path to the Molfile representing the molecule.
-        add_hydrogens (bool, optional): Whether to add hydrogens to the molecule. Default is True.
-        safe_sanitise (bool, optional): Whether to use safe sanitisation. Default is False.
+    Reads a Molfile using RDKit and returns a standardized RDKit ``Chem.Mol``.
+    Standardisation is performed by either ``safe_standardize_mol`` (when
+    ``safe_sanitise`` is True) or ``standardize_mol`` (when False).
 
-    Returns:
-        Chem.Mol: The standardized RDKit molecule.
+    Parameters
+    ----------
+    mol : str
+        Path to the Molfile to read. The function calls ``Chem.MolFromMolFile`` on
+        this path; passing raw Molfile content is not supported by this function.
+    add_hydrogens : bool, optional
+        If True, explicit hydrogens will be added to the returned molecule.
+        Default is True.
+    safe_sanitise : bool, optional
+        If True, perform relaxed sanitisation via ``safe_standardize_mol``.
+        If False, use ``standardize_mol``. Default is False.
+
+    Returns
+    -------
+    rdkit.Chem.Mol or None
+        A standardized RDKit ``Mol`` instance on success. If RDKit fails to parse
+        the input file the function may return ``None``; callers should check the
+        return value before use.
+
+    Raises
+    ------
+    TypeError
+        If ``mol`` is not a string.
+    FileNotFoundError
+        If the provided file path does not exist.
+    ValueError
+        If RDKit fails to produce a molecule from the given Molfile.
     """
     # Convert the Molfile to an RDKit molecule
     mol = Chem.MolFromMolFile(mol)
@@ -199,12 +340,35 @@ def standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     """
     Standardize the given RDKit molecule.
 
-    Args:
-        mol (Chem.Mol): The input RDKit molecule to be standardised.
-        add_hydrogens (bool, optional): Whether to add hydrogens to the molecule. Default is True.
+    Performs strict sanitisation and canonicalisation steps on an RDKit
+    ``Chem.Mol``: sanitisation, in-place normalisation using
+    ``rdMolStandardize.NormalizeInPlace``, property-cache update with strict
+    checking, kekulisation, and optional explicit hydrogen addition.
 
-    Returns:
-        Chem.Mol: The standardized RDKit molecule.
+    Parameters
+    ----------
+    mol : rdkit.Chem.Mol
+        Input RDKit molecule to be standardised. The function mutates the
+        provided molecule for most operations and may return a new instance if
+        hydrogens are added.
+    add_hydrogens : bool, optional
+        If True (default), explicit hydrogens are added to the returned
+        molecule via ``Chem.AddHs``.
+
+    Returns
+    -------
+    rdkit.Chem.Mol
+        The standardized RDKit molecule. When ``add_hydrogens`` is True a new
+        molecule instance containing explicit hydrogens may be returned;
+        otherwise the original (mutated) molecule is returned.
+
+    Raises
+    ------
+    TypeError
+        If ``mol`` is not an instance of ``rdkit.Chem.Mol``.
+    ValueError
+        If RDKit sanitisation or parsing fails (for example when RDKit returns
+        ``None`` or raises during sanitisation/kekulisation).
     """
     # Sanitise the molecule
     Chem.SanitizeMol(mol, catchErrors=False)
@@ -225,11 +389,30 @@ def nx_to_dict(graph):
     """
     Convert a NetworkX graph to a dictionary with node colors, neighbors, and edge colors.
 
-    Args:
-        graph (nx.Graph): The input NetworkX graph.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Input NetworkX graph. Nodes are expected to have a ``'color'`` attribute;
+        edges may have a ``'color'`` attribute representing bond/order. If a node
+        or edge attribute is missing sensible defaults are used (see Notes).
 
-    Returns:
-        dict: A dictionary representation of the graph with node colors, neighbors, and edge colors.
+    Returns
+    -------
+    dict
+        Mapping from node id to a dictionary with the following keys:
+        - ``'vertex_color'`` : str
+            Node color (e.g. atomic symbol). Defaults to ``'C'`` when the node
+            does not define a ``'color'`` attribute.
+        - ``'neighbors'`` : list[int]
+            List of neighboring node identifiers.
+        - ``'edge_colors'`` : list[int]
+            List of edge color values (integers) aligned with ``'neighbors'``;
+            each entry corresponds to the edge color for the neighbor at the same index.
+
+    Raises
+    ------
+    TypeError
+        If ``graph`` is not an instance of ``networkx.Graph``.
     """
     graph_dict = {}
     for node_id, node_data in graph.nodes(data=True):
@@ -247,11 +430,36 @@ def dict_to_nx(graph_dict):
     """
     Convert a dictionary representation of a graph back to a NetworkX graph.
 
-    Args:
-        graph_dict (dict): A dictionary representation of the graph with node colors, neighbors, and edge colors.
+    The input dictionary is expected to map node identifiers to dictionaries
+    containing a ``'vertex_color'`` (string), a ``'neighbors'`` list of node ids,
+    and an ``'edge_colors'`` list of integers aligned with ``'neighbors'``.
 
-    Returns:
-        nx.Graph: The reconstructed NetworkX graph.
+    Parameters
+    ----------
+    graph_dict : dict
+        Mapping from node id to a dictionary with keys:
+        - ``'vertex_color'`` (str): Node color (e.g. atomic symbol).
+        - ``'neighbors'`` (list[int]): Neighbor node identifiers.
+        - ``'edge_colors'`` (list[int]): Edge color values aligned with ``'neighbors'``.
+
+    Returns
+    -------
+    networkx.Graph
+        A NetworkX undirected graph reconstructed from ``graph_dict``. Each node
+        is added with a ``'color'`` attribute set from ``'vertex_color'`` and each
+        undirected edge is added once with a ``'color'`` attribute taken from the
+        corresponding ``'edge_colors'`` entry.
+
+    Raises
+    ------
+    TypeError
+        If ``graph_dict`` is not a ``dict``.
+    KeyError
+        If a node entry does not contain the required keys
+        (``'vertex_color'``, ``'neighbors'``, ``'edge_colors'``).
+    ValueError
+        If the lengths of ``'neighbors'`` and ``'edge_colors'`` for any node do
+        not match.
     """
     graph = nx.Graph()
 
@@ -272,11 +480,32 @@ def mol2graph(mol_file):
     """
     Convert a molecular file to a graph dictionary representation.
 
-    Args:
-        mol_file (str): The path to the molecular file.
+    Reads a molecular file using :func:`molfile_to_mol`, converts the resulting RDKit
+    molecule to a NetworkX graph via :func:`mol_to_nx`, removes hydrogen atoms, and
+    returns a standalone dictionary representation produced by :func:`nx_to_dict`.
 
-    Returns:
-        dict: A dictionary representation of the molecular graph with node colors, neighbors, and edge colors.
+    Parameters
+    ----------
+    mol_file : str
+        Path to the molecular file to read (for example, `molecule.mol`).
+
+    Returns
+    -------
+    dict
+        Dictionary mapping node identifiers to dictionaries with keys:
+        - ``'vertex_color'`` (str): atomic symbol for the node,
+        - ``'neighbors'`` (list[int]): neighbor node identifiers,
+        - ``'edge_colors'`` (list[int]): bond orders aligned with ``'neighbors'``.
+
+    Raises
+    ------
+    TypeError
+        If ``mol_file`` is not a string.
+    FileNotFoundError
+        If the provided file path does not exist.
+    ValueError
+        If RDKit fails to parse the file into a valid molecule.
+    True
     """
     mol = molfile_to_mol(mol_file)  # Convert the molecular file to a molecule object
     mol_graph = mol_to_nx(mol)  # Convert the molecule object to a NetworkX graph
@@ -288,8 +517,25 @@ def print_graph_dict(graph_dict):
     """
     Print the contents of a graph dictionary.
 
-    Args:
-        graph_dict (dict): A dictionary representation of a graph with node colors, neighbors, and edge colors.
+    Parameters
+    ----------
+    graph_dict : dict
+        Dictionary mapping node identifiers to dictionaries with keys
+        ``'vertex_color'``, ``'neighbors'``, and ``'edge_colors'`` (as produced by
+        ``nx_to_dict``). Each node entry is printed on its own line to standard
+        output using Python's ``print`` and flushed immediately.
+
+    Returns
+    -------
+    None
+        This function prints to stdout and returns ``None``.
+
+    Raises
+    ------
+    TypeError
+        If ``graph_dict`` is not a ``dict``.
+    KeyError
+        If a node entry does not contain the expected keys.
     """
     for i in graph_dict:
         print(f"{i}: {graph_dict[i]}", flush=True)
@@ -298,10 +544,29 @@ def print_graph_dict(graph_dict):
 
 def print_virtual_objects(virtual_objects):
     """
-    Print the contents of a list of virtual objects, where each virtual object is a NetworkX graph.
+    Print a sequence of virtual objects (NetworkX graphs) to standard output.
 
-    Args:
-        virtual_objects (list of nx.Graph): A list of NetworkX graph objects representing virtual objects.
+    Iterates over the provided sequence of NetworkX graph objects and prints each
+    graph's dictionary representation using ``print_graph_dict``. Each graph is
+    prefixed by its zero-based index on its own line.
+
+    Parameters
+    ----------
+    virtual_objects : Sequence[nx.Graph]
+        Iterable of NetworkX graphs representing virtual objects. Each item is
+        converted with ``nx_to_dict`` before printing.
+
+    Returns
+    -------
+    None
+        This function prints to stdout for human-readable inspection and returns
+        ``None``.
+
+    Raises
+    ------
+    TypeError
+        If ``virtual_objects`` is not iterable or contains items that are not
+        instances of ``networkx.Graph``.
     """
     for i, item in enumerate(virtual_objects):
         print(f"{i}: ", flush=True)
@@ -310,15 +575,31 @@ def print_virtual_objects(virtual_objects):
 
 def nx_to_dict_v2(graph):
     """
-    Convert a NetworkX graph to a dictionary with vertex colors and edges with bond types.
+    Convert a NetworkX graph to a vertex map and an edge list with bond-type strings.
 
-    Args:
-        graph (nx.Graph): The input NetworkX graph.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Input undirected graph. Each node is expected to have a ``'color'`` node
+        attribute (string). Each edge may have a ``'color'`` attribute (integer)
+        representing bond order; missing edge colors default to ``1``.
 
-    Returns:
-        tuple: A tuple containing:
-            - vmap (dict): A dictionary mapping nodes to their colors.
-            - edges (list): A list of tuples representing the edges with bond types, where each tuple is (node1, node2, bond_type).
+    Returns
+    -------
+    tuple
+        Tuple ``(vmap, edges)`` where:
+        - ``vmap`` : dict
+            Mapping from node identifier to node color (str).
+        - ``edges`` : list of tuple
+            List of edges represented as ``(u, v, bond_type)`` where ``bond_type``
+            is a string of the form ``'B{n}'`` and ``n`` is the integer bond order.
+
+    Raises
+    ------
+    TypeError
+        If ``graph`` is not an instance of ``networkx.Graph``.
+    KeyError
+        If a node does not expose a ``'color'`` attribute when required.
     """
     # Create vertex map
     vmap = {node: data['color'] for node, data in graph.nodes(data=True)}
@@ -334,15 +615,40 @@ def nx_to_dict_v2(graph):
 
 def dict_to_nx_v2(graph_dict):
     """
-    Convert a dictionary representation of a graph back to a NetworkX graph.
+    Convert a vertex map and edge list representation into a NetworkX graph.
 
-    Args:
-        graph_dict (tuple): A tuple containing:
-            - vmap (dict): A dictionary mapping nodes to their colors.
-            - edges (list): A list of tuples representing the edges with bond types, where each tuple is (node1, node2, bond_type).
+    Takes a tuple produced by :func:`nx_to_dict_v2` (or compatible structure)
+    containing a vertex map and an edge list with bond-type strings, and
+    reconstructs an undirected :class:`networkx.Graph` where node attributes
+    store atom/vertex colors and edge attributes store integer bond orders.
 
-    Returns:
-        nx.Graph: The reconstructed NetworkX graph.
+    Parameters
+    ----------
+    graph_dict : tuple
+        Tuple ``(vmap, edges)`` where:
+        - ``vmap`` : dict
+            Mapping from node identifier to node color (str).
+        - ``edges`` : list of tuple
+            Sequence of edges represented as ``(u, v, bond_type)`` where
+            ``bond_type`` is a string of the form ``'B{n}'`` and ``n`` is an
+            integer bond order (for example, ``'B1'``, ``'B2'``).
+
+    Returns
+    -------
+    networkx.Graph
+        Undirected NetworkX graph with nodes added using keys from ``vmap`` and a
+        node attribute ``'color'`` set to the corresponding value. Edges from the
+        ``edges`` list are added once with an integer ``'color'`` attribute parsed
+        from the trailing integer in the bond-type string.
+
+    Raises
+    ------
+    TypeError
+        If ``graph_dict`` is not a two-element tuple, or if ``vmap`` is not a
+        ``dict`` or ``edges`` is not an iterable of tuples.
+    ValueError
+        If an edge tuple does not have three elements or if ``bond_type`` does not
+        follow the expected ``'B{n}'`` format where ``{n}`` is an integer.
     """
     vmap, edges = graph_dict
     graph = nx.Graph()

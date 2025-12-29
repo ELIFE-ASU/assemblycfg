@@ -9,14 +9,36 @@ from .utils import get_disconnected_subgraphs
 
 def partition_into_disjoint_trails(graph, debug=False):
     """
-    Partitions a NetworkX graph into disjoint trails (walks that do not reuse edges).
+    Partition a NetworkX graph into disjoint trails (edge-disjoint walks).
 
-    Parameters:
-        graph (networkx.Graph): The input graph.
-        debug (bool): If True, prints debug information. Default is False.
+    Constructs a set of trails (node sequences) that together cover every edge
+    of the input graph exactly once. Trails are produced by repeatedly selecting
+    an unused edge and greedily extending the walk forward and backward until
+    no further unused incident edges remain.
 
-    Returns:
-        list: A list of disjoint trails, where each trail is a list of nodes.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Undirected input graph whose edges will be partitioned into trails. Edge
+        attributes are ignored for the partitioning logic; only graph topology is used.
+    debug : bool, optional
+        If True, print per-trail and intermediate-state diagnostics to stdout.
+        Default is False.
+
+    Returns
+    -------
+    list of list
+        List of trails. Each trail is represented as a list of node identifiers
+        in visitation order. Trails with two nodes correspond to single edges.
+
+    Raises
+    ------
+    TypeError
+        If ``graph`` is not a NetworkX graph-like object exposing ``edges``,
+        ``neighbors`` and related iterators.
+    ValueError
+        If the graph contains self-loops that prevent proper trail extension;
+        callers should pre-clean self-loops if such behavior is undesired.
     """
     if not graph.edges:
         return []
@@ -77,13 +99,32 @@ def partition_into_disjoint_trails(graph, debug=False):
 
 def get_unique_char(input_str):
     """
-    Find a unique character that is not present in the input string.
+    Find a unique character not present in the given input sequence.
 
-    Args:
-        input_str (str or list): The input string or list of characters to check against.
+    Searches Unicode code points and returns the first single-character string
+    that does not appear in the provided sequence.
 
-    Returns:
-        str: A unique character not present in the input string.
+    Parameters
+    ----------
+    input_str : str or collections.abc.Iterable
+        Input sequence of characters (for example, a Python string or an iterable
+        of single-character strings). Membership tests are performed against the
+        elements of this iterable.
+
+    Returns
+    -------
+    char : str
+        A single-character string representing a Unicode code point not found in
+        ``input_str``.
+
+    Raises
+    ------
+    TypeError
+        If ``input_str`` is not an iterable of characters.
+    ValueError
+        If no available Unicode code point could be found. The function searches
+        code points from U+0001 to U+10FFFF; exhaustion of this range is
+        extremely unlikely in practice.
     """
     for i in range(1, 1114111):
         char = chr(i)
@@ -93,18 +134,46 @@ def get_unique_char(input_str):
 
 def trails_to_sequences(trails, graph, debug=False):
     """
-    Convert a list of trails to a string with a corresponding assembly index to the parent graph.
+    Convert a list of trails into encoded sequences and an assembly index.
 
-    Parameters:
-        trails (list): A list of trails, where each trail is a list of nodes.
-        graph (networkx.Graph): The input graph.
-        debug (bool): If True, prints debug information. Default is False.
+    Maps each non-trivial trail (length > 2 nodes) to a string where each
+    character represents a molecular unit derived from an edge traversal.
+    Also returns the mapping from molecular units to single-character symbols
+    and a count of trivial trails (single-edge trails) omitted from the
+    returned sequences.
 
-    Returns:
-        tuple: A tuple containing:
-            - list: Strings representing the trails.
-            - dict: A dictionary mapping the string units to the molecular units.
-            - int: The number of extra edges (trails of length 1).
+    Parameters
+    ----------
+    trails : list of list
+        Iterable of trails, where each trail is an ordered list of node
+        identifiers (e.g. integers or hashable node keys).
+    graph : networkx.Graph
+        Graph providing node attribute `'color'` and edge attribute `'color'`.
+        Edge lookups handle both `(u, v)` and `(v, u)` for undirected graphs.
+    debug : bool, optional
+        If True, print per-edge and intermediate diagnostics. Default is False.
+
+    Returns
+    -------
+    sequences : list of str
+        List of strings, one per non-trivial trail, where each character
+        corresponds to a molecular unit encountered along the trail.
+    char_dict : dict
+        Mapping from molecular unit tuples
+        `(start_color, edge_color, end_color)` to the single-character symbol
+        used in the corresponding `sequences`.
+    trivial_trail_count : int
+        Number of trails of length 2 (single edges) that were counted as
+        trivial and excluded from `sequences`.
+
+    Raises
+    ------
+    KeyError
+        If a traversed edge or node is missing the expected `'color'`
+        attribute required to construct a molecular unit.
+    TypeError
+        If `trails` or `graph` are of an unexpected type that prevents
+        iteration or attribute access.
     """
     char_dict = dict()  # Dictionary to store the character representing each unit
     char_list = []  # List to store the characters
@@ -146,24 +215,40 @@ def trails_to_sequences(trails, graph, debug=False):
 
 def repair_compression(sequences):
     """
-    Apply a RePair-like compression on sequences (a list of strings).
+    Apply a RePair-like compression to a list of symbol sequences.
 
-    Steps:
-    1. Count frequencies of all adjacent pairs.
-    2. Choose the most frequent pair.
-    3. Replace all occurrences of that pair with a new symbol.
-    4. Record the rule for that pair.
-    5. Repeat until no pair occurs more than once.
+    Performs iterative pair-replacement compression similar to RePair:
+    1. Count frequencies of all adjacent symbol pairs across sequences.
+    2. Select the most frequent pair occurring more than once.
+    3. Introduce a new nonterminal symbol to represent that pair.
+    4. Replace all occurrences of the pair with the new symbol.
+    5. Record the replacement rule and repeat until no pair occurs more than once.
 
-    Parameters:
-        sequences (list of str): The list of sequences to be compressed.
+    Parameters
+    ----------
+    sequences : list of str
+        Iterable of input sequences to compress. Each sequence is treated as an
+        ordered list of atomic symbols (single-character strings or tokens).
+        The function copies and operates on list representations of these
+        sequences, so input sequences are not mutated.
 
-    Returns:
-        tuple: A tuple containing:
-            - list of list of str: The compressed sequences.
-            - list of tuple: The list of rules, each rule is (new_symbol, (sym1, sym2)).
+    Returns
+    -------
+    final_seqs : list of list
+        Compressed sequences where each sequence is a list of symbols (strings).
+        New nonterminal symbols are inserted as string tokens (e.g. ``"NT_0"``).
+    rules : list of tuple
+        List of replacement rules in the order they were created. Each rule is a
+        tuple ``(new_symbol, (sym1, sym2))`` meaning ``new_symbol -> sym1 sym2``.
 
-    Symbols can be strings or tuples. We'll keep them as is. New symbols will be generated as special strings.
+    Raises
+    ------
+    TypeError
+        If ``sequences`` is not an iterable of strings or string-like iterables.
+    ValueError
+        If a generated new symbol collides with existing symbols in the input
+        (this implementation uses a simple ``NT_{i}`` naming scheme and raises
+        only if a collision policy is later introduced).
     """
 
     seqs = [list(seq) for seq in sequences]  # copy
@@ -210,20 +295,41 @@ def repair_compression(sequences):
 
 def compute_assembly_path_length_from_compression(final_seqs, rules, ai_correction, debug=False):
     """
-    Compute assembly index using the formula:
-    path_length = (length_of_final_sequence) + (number_of_rules) + (ai_correction)
+    Compute assembly path length from RePair-compressed sequences and rules.
 
-    Parameters:
-        final_seqs (list of list of str): The compressed sequences after RePair.
-        rules (list of tuple): The list of rules generated during compression.
-        ai_correction (int): The assembly index correction factor.
-        debug (bool): If True, prints debug information. Default is False.
+    Calculates the assembly/path length using the simple formula:
 
-    Returns:
-        int: The computed assembly path length.
+    path_length = (total length of compressed sequences) + (number of rules) + (ai_correction)
 
-    ai_correction is calculated as:
-    number of unique units - joint ai correction - trivial trail count
+    Parameters
+    ----------
+    final_seqs : list of list of str
+        Compressed sequences produced by `repair_compression`. Each element is a
+        sequence represented as an iterable (typically a list) of symbol strings.
+    rules : list of tuple
+        Replacement rules produced during compression. Each rule is a tuple
+        ``(new_symbol, (sym1, sym2))`` describing how a nonterminal expands.
+    ai_correction : int
+        Integer correction term applied to the computed path length. This value is
+        computed outside the function (for example as ``unique_units - joint_correction - trivial_trail_count``)
+        and may be negative, zero or positive.
+    debug : bool, optional
+        If True, print intermediate debug information (length of final sequences
+        and number of rules). Default is False.
+
+    Returns
+    -------
+    int
+        The computed assembly/path length as an integer.
+
+    Raises
+    ------
+    TypeError
+        If ``final_seqs`` or ``rules`` are not iterables of the expected form, or
+        if ``ai_correction`` is not an integer.
+    ValueError
+        If any sequence in ``final_seqs`` contains non-hashable or otherwise
+        unsupported elements that prevent length measurement (rare).
     """
     length_final = sum(len(seq) for seq in final_seqs)
     num_rules = len(rules)
@@ -235,25 +341,53 @@ def compute_assembly_path_length_from_compression(final_seqs, rules, ai_correcti
 
 def calculate_assembly_path_det(graph, iterations=1, debug=False):
     """
-    Main function:
-    1. Extract all original units (vertex color-edge color-vertex color triple) from the graph.
-    2. Build a sequence from the graph (by partitioning graph into disjoint trails).
-    3. Apply RePair compression on the sequence.
-    4. Compute assembly index from the formula.
-    5. Repeat from step 2 for a number of iterations and return the shortest path found.
+    Deterministic assembly-path search by repeated trail partitioning and RePair compression.
 
-    Also returns the compressed sequence and rules for reconstruction.
+    Performs a multi-iteration heuristic search that partitions the input graph
+    into edge-disjoint trails, encodes trails as symbol sequences, applies a
+    RePair-like compression to the sequences, and computes a simple assembly/path
+    length metric from the compressed representation. The shortest path length
+    (and associated compressed representation) observed across iterations is
+    returned alongside reconstructed virtual objects and a directed path graph
+    useful for downstream reconstruction.
 
-    Parameters:
-        graph (networkx.Graph): The input graph.
-        iterations (int): The number of iterations to perform. Default is 1.
-        debug (bool): If True, prints debug information. Default is False.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Undirected input graph whose nodes are expected to have a `'color'`
+        attribute and whose edges are expected to have a `'color'` attribute.
+    iterations : int, optional
+        Number of independent random partitions/compressions to attempt. The
+        algorithm is nondeterministic (randomized selection of seed edges and
+        extension choices); increasing `iterations` can improve the chance of
+        finding a shorter assembly path. Default is 1.
+    debug : bool, optional
+        If True, print diagnostic information for each iteration and internal
+        processing steps. Default is False.
 
-    Returns:
-        tuple: A tuple containing:
-            - int: The shortest path length found.
-            - dict: Virtual objects (currently empty).
-            - list: The rules for reconstruction.
+    Returns
+    -------
+    best_path_length : int or float
+        The smallest assembly/path length found across all iterations. May be
+        0 for trivial inputs or `numpy.inf` if no valid partitions were produced.
+    virtual_objects : list or None
+        List of reconstructed molecular-graph objects (one per discovered symbol)
+        produced by unpacking the final compression rules with the character
+        dictionary. Returns `None` for trivial early exits.
+    path : networkx.DiGraph or None
+        Directed graph representing relationships between compressed symbols
+        (nonterminals and their components). Returns `None` for trivial early exits.
+
+    Raises
+    ------
+    TypeError
+        If `graph` is not a NetworkX graph or if required node/edge attributes
+        are missing such that downstream processing cannot proceed.
+    ValueError
+        If the input graph is detected as trivial (no meaningful compression or
+        assembly path can be computed) the function may return early rather than
+        raise; callers should validate input separately if exceptions are
+        preferred.
     """
 
     # Find the joint correction
@@ -323,15 +457,39 @@ def calculate_assembly_path_det(graph, iterations=1, debug=False):
 
 def purge_unique_units(graph):
     """
-    Purge the unique units (vertex color-edge color-vertex color triples) from the graph.
+    Purge unique vertex-edge-vertex units from a graph.
 
-    Parameters:
-        graph (networkx.Graph): The input graph.
+    Counts occurrences of molecular units represented as tuples
+    ``(vertex_color, edge_color, vertex_color)`` across all edges, removes
+    edges corresponding to units that occur exactly once (treating reversed
+    units as equivalent), and prunes any isolated nodes created by removals.
 
-    Returns:
-        tuple: A tuple containing:
-            - networkx.Graph: The purged graph with unique units removed.
-            - int: The number of unique units removed.
+    Parameters
+    ----------
+    graph : networkx.Graph
+        Input undirected graph whose nodes must have a ``'color'`` attribute
+        and whose edges must have a ``'color'`` attribute. The function does
+        not modify the input graph in place; it returns a shallow copy with
+        the unique-unit edges removed.
+
+    Returns
+    -------
+    purged_graph : networkx.Graph
+        A copy of ``graph`` with edges corresponding to unique units removed
+        and any resulting isolated nodes deleted.
+    unique_units : int
+        Number of unique units removed (i.e. count of distinct unit types
+        that were observed exactly once and for which the corresponding edge
+        was removed).
+
+    Raises
+    ------
+    KeyError
+        If any node in the graph is missing the required ``'color'`` attribute
+        or any edge is missing the required ``'color'`` attribute.
+    TypeError
+        If ``graph`` is not a NetworkX graph-like object supporting
+        ``edges(data=True)`` and node attribute access.
     """
 
     # Make dict counting the frequency of each unit
@@ -371,17 +529,47 @@ def purge_unique_units(graph):
 
 def process_paths(rules, char_dict):
     """
-    Processes the rules and character dictionary to construct a directed graph and a list of molecular graphs.
+    Construct virtual molecular graphs and a directed symbol graph from compression rules and a character dictionary.
 
-    Parameters:
-        rules (list of tuple): A list of rules, where each rule is a tuple in the form (new_symbol, (sym1, sym2)).
-                               Each rule defines how a new symbol is composed of two other symbols.
-        char_dict (dict): A dictionary mapping symbols to their corresponding molecular units.
+    Builds a directed graph describing how nonterminal symbols expand into component symbols
+    and reconstructs the corresponding "virtual" molecular graphs (one per discovered symbol)
+    by recursively unpacking rules and translating symbol sequences into molecular units.
 
-    Returns:
-        tuple: A tuple containing:
-            - list: A list of molecular graphs (virtual objects) corresponding to the symbols.
-            - networkx.DiGraph: A directed graph representing the relationships between symbols.
+    Parameters
+    ----------
+    rules : list of tuple
+        List of replacement rules produced by the compression pass. Each rule must be a
+        tuple ``(new_symbol, (sym1, sym2))`` where ``new_symbol`` is a symbol introduced by
+        compression (for example ``"NT_0"``) and ``sym1`` and ``sym2`` are the two component
+        symbols (either terminal symbols or other nonterminals).
+    char_dict : dict
+        Mapping from molecular unit tuples to single-character symbols, i.e.
+        ``{(start_color, edge_color, end_color): 'A', ...}``. This function will invert
+        the mapping internally to obtain a mapping from symbol (character) to unit
+        required for molecular reconstruction.
+
+    Returns
+    -------
+    virtual_objects : list of networkx.Graph
+        List of molecular graphs reconstructed from each discovered symbol. Each element
+        is a NetworkX undirected graph whose nodes have a ``'color'`` attribute and whose
+        edges have a ``'color'`` attribute corresponding to the molecular unit colors.
+    path : networkx.DiGraph
+        Directed graph representing symbol expansion relationships. Nodes correspond to
+        discovered symbols (indexed by integer insertion order) and directed edges point
+        from a nonterminal to its component symbols.
+
+    Raises
+    ------
+    TypeError
+        If ``rules`` is not an iterable of 2-tuples of the expected form, or if ``char_dict``
+        is not a mapping. Also raised when downstream helpers receive unsupported types.
+    KeyError
+        If a terminal symbol referenced during unpacking is not present in the inverted
+        ``char_dict`` (i.e. a terminal character has no associated molecular unit).
+    ValueError
+        If ``rules`` contain inconsistent or cyclic definitions that prevent successful
+        unpacking into terminal sequences.
     """
     path = nx.DiGraph()  # Initialize a directed graph
     symbol_virtual_objects = []  # List to store unique symbols as virtual objects
@@ -415,15 +603,38 @@ def process_paths(rules, char_dict):
 
 def unpack_path(symbol, rules):
     """
-    Recursively reconstructs a sequence from a given symbol and a set of rules.
+    Recursively reconstruct a terminal sequence from a symbol using binary production rules.
 
-    Parameters:
-        symbol (str): The starting symbol to unpack.
-        rules (list of tuple): A list of rules, where each rule is a tuple in the form (new_symbol, (sym1, sym2)).
-                               Each rule defines how a new symbol is composed of two other symbols.
+    Given a set of binary rules of the form ``(new_symbol, (sym1, sym2))``, this
+    function expands ``symbol`` by recursively replacing nonterminal symbols with
+    their right-hand components until only terminal symbols remain. The result is
+    returned as a concatenated string of terminal symbols.
 
-    Returns:
-        str: The reconstructed sequence as a string.
+    Parameters
+    ----------
+    symbol : str
+        Starting symbol to unpack. May be a terminal (single-character) or a
+        nonterminal introduced by the compression pass (for example ``"NT_0"``).
+    rules : list of tuple
+        Iterable of binary production rules. Each element must be a 2-tuple
+        ``(new_symbol, (sym1, sym2))`` where ``sym1`` and ``sym2`` are symbols
+        that may themselves be terminals or nonterminals.
+
+    Returns
+    -------
+    str
+        The fully expanded sequence obtained by recursively unpacking ``symbol``.
+        Terminal symbols are concatenated in left-to-right order produced by the
+        rule expansions.
+
+    Raises
+    ------
+    TypeError
+        If ``rules`` is not an iterable of 2-tuples or if rule elements are not of
+        the expected types (string for symbols and a 2-tuple for the right-hand side).
+    ValueError
+        If a cycle is detected in the rules (recursive definitions) that prevents
+        termination, or if a referenced nonterminal has no corresponding rule.
     """
     output = ""
     # If the symbol is not a new symbol in the rules, return it as is
@@ -442,13 +653,37 @@ def seq_2_mol(seq, unit_dict):
     """
     Convert a sequence of symbols into a molecular graph.
 
-    Parameters:
-        seq (str): A string representing the sequence of symbols.
-        unit_dict (dict): A dictionary mapping each symbol to its corresponding molecular unit.
-                          Each molecular unit is a tuple (start_color, edge_color, end_color).
+    Creates a linear NetworkX undirected graph from a sequence of terminal symbols
+    using a mapping from each symbol to a molecular unit tuple
+    ``(start_color, edge_color, end_color)``. Nodes are 1-indexed integers and carry
+    a ``'color'`` node attribute; edges carry a ``'color'`` edge attribute.
 
-    Returns:
-        networkx.Graph: A molecular graph where nodes represent atoms (with colors) and edges represent bonds (with colors).
+    Parameters
+    ----------
+    seq : str
+        Sequence of terminal symbols (each symbol is a key in ``unit_dict``).
+        The sequence length ``m`` yields a graph with ``m + 1`` nodes and ``m``
+        edges representing the successive molecular units.
+    unit_dict : dict
+        Mapping from single-character symbols to molecular unit tuples:
+        ``{symbol: (start_color, edge_color, end_color), ...}``. Colors can be
+        any hashable values (commonly strings).
+
+    Returns
+    -------
+    networkx.Graph
+        Undirected molecular graph where nodes are integers ``1..m+1`` with a
+        ``'color'`` attribute and edges between consecutive nodes carry a
+        ``'color'`` attribute corresponding to the unit's edge color.
+
+    Raises
+    ------
+    TypeError
+        If ``seq`` is not a string-like iterable or ``unit_dict`` is not a mapping.
+    KeyError
+        If any symbol in ``seq`` is not present in ``unit_dict``.
+    ValueError
+        If ``seq`` is empty (no units) and a non-empty molecular graph is required.
     """
     mol_graph = nx.Graph()
     # Initialize the first node with the start color of the first unit in the sequence
