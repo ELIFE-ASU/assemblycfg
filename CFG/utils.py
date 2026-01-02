@@ -1,10 +1,10 @@
+import warnings
 from typing import List
 
 import networkx as nx
 from rdkit import Chem
 from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
-import warnings
 
 
 def safe_standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
@@ -99,7 +99,7 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> C
 def smi_to_nx(smi: str, add_hydrogens: bool = True) -> nx.Graph:
     """
     Convert a SMILES string to a NetworkX molecular graph.
-    
+
     Reads a SMILES string, converts it to an RDKit ``Mol`` using
     ``smi_to_mol`` (which performs optional sanitisation and hydrogen
     addition), then converts the resulting molecule into a NetworkX graph
@@ -571,95 +571,3 @@ def print_virtual_objects(virtual_objects):
     for i, item in enumerate(virtual_objects):
         print(f"{i}: ", flush=True)
         print_graph_dict(nx_to_dict(item))
-
-
-def nx_to_dict_v2(graph):
-    """
-    Convert a NetworkX graph to a vertex map and an edge list with bond-type strings.
-
-    Parameters
-    ----------
-    graph : networkx.Graph
-        Input undirected graph. Each node is expected to have a ``'color'`` node
-        attribute (string). Each edge may have a ``'color'`` attribute (integer)
-        representing bond order; missing edge colors default to ``1``.
-
-    Returns
-    -------
-    tuple
-        Tuple ``(vmap, edges)`` where:
-        - ``vmap`` : dict
-            Mapping from node identifier to node color (str).
-        - ``edges`` : list of tuple
-            List of edges represented as ``(u, v, bond_type)`` where ``bond_type``
-            is a string of the form ``'B{n}'`` and ``n`` is the integer bond order.
-
-    Raises
-    ------
-    TypeError
-        If ``graph`` is not an instance of ``networkx.Graph``.
-    KeyError
-        If a node does not expose a ``'color'`` attribute when required.
-    """
-    # Create vertex map
-    vmap = {node: data['color'] for node, data in graph.nodes(data=True)}
-
-    # Create edges list with bond types
-    edges = []
-    for u, v, data in graph.edges(data=True):
-        bond_type = f"B{data['color']}"
-        edges.append((u, v, bond_type))
-
-    return vmap, edges
-
-
-def dict_to_nx_v2(graph_dict):
-    """
-    Convert a vertex map and edge list representation into a NetworkX graph.
-
-    Takes a tuple produced by :func:`nx_to_dict_v2` (or compatible structure)
-    containing a vertex map and an edge list with bond-type strings, and
-    reconstructs an undirected :class:`networkx.Graph` where node attributes
-    store atom/vertex colors and edge attributes store integer bond orders.
-
-    Parameters
-    ----------
-    graph_dict : tuple
-        Tuple ``(vmap, edges)`` where:
-        - ``vmap`` : dict
-            Mapping from node identifier to node color (str).
-        - ``edges`` : list of tuple
-            Sequence of edges represented as ``(u, v, bond_type)`` where
-            ``bond_type`` is a string of the form ``'B{n}'`` and ``n`` is an
-            integer bond order (for example, ``'B1'``, ``'B2'``).
-
-    Returns
-    -------
-    networkx.Graph
-        Undirected NetworkX graph with nodes added using keys from ``vmap`` and a
-        node attribute ``'color'`` set to the corresponding value. Edges from the
-        ``edges`` list are added once with an integer ``'color'`` attribute parsed
-        from the trailing integer in the bond-type string.
-
-    Raises
-    ------
-    TypeError
-        If ``graph_dict`` is not a two-element tuple, or if ``vmap`` is not a
-        ``dict`` or ``edges`` is not an iterable of tuples.
-    ValueError
-        If an edge tuple does not have three elements or if ``bond_type`` does not
-        follow the expected ``'B{n}'`` format where ``{n}`` is an integer.
-    """
-    vmap, edges = graph_dict
-    graph = nx.Graph()
-
-    # Add nodes with their attributes
-    for node, color in vmap.items():
-        graph.add_node(node, color=color)
-
-    # Add edges with their attributes
-    for u, v, bond_type in edges:
-        bond_color = int(bond_type[1:])  # Extract the integer part of the bond type
-        graph.add_edge(u, v, color=bond_color)
-
-    return graph
