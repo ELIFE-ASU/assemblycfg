@@ -1,5 +1,5 @@
 import warnings
-from typing import List
+from typing import List, Dict, Any, Sequence, Optional
 
 import networkx as nx
 from rdkit import Chem
@@ -52,7 +52,7 @@ def safe_standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     return mol
 
 
-def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> Chem.Mol:
+def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> Optional[Chem.Mol]:
     """
     Convert a SMILES string to an RDKit molecule object.
 
@@ -291,7 +291,7 @@ def get_disconnected_subgraphs(graph: nx.Graph) -> List[nx.Graph]:
     return [graph.subgraph(c) for c in nx.connected_components(graph)]
 
 
-def molfile_to_mol(mol: str, add_hydrogens: bool = True, safe_sanitise: bool = False) -> Chem.Mol:
+def molfile_to_mol(mol: str, add_hydrogens: bool = True, safe_sanitise: bool = False) -> Optional[Chem.Mol]:
     """
     Convert a Molfile (file path) to a standardized RDKit molecule.
 
@@ -385,7 +385,7 @@ def standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     return mol
 
 
-def nx_to_dict(graph):
+def nx_to_dict(graph: nx.Graph) -> Dict[Any, Dict[str, Any]]:
     """
     Convert a NetworkX graph to a dictionary with node colors, neighbors, and edge colors.
 
@@ -426,7 +426,7 @@ def nx_to_dict(graph):
     return graph_dict
 
 
-def dict_to_nx(graph_dict):
+def dict_to_nx(graph_dict: Dict[Any, Dict[str, Any]]) -> nx.Graph:
     """
     Convert a dictionary representation of a graph back to a NetworkX graph.
 
@@ -476,7 +476,7 @@ def dict_to_nx(graph_dict):
     return graph
 
 
-def mol2graph(mol_file):
+def mol2graph(mol_file: str) -> Dict[Any, Dict[str, Any]]:
     """
     Convert a molecular file to a graph dictionary representation.
 
@@ -513,7 +513,7 @@ def mol2graph(mol_file):
     return nx_to_dict(mol_graph)  # Convert the NetworkX graph to a dictionary representation
 
 
-def print_graph_dict(graph_dict):
+def print_graph_dict(graph_dict: Dict[Any, Dict[str, Any]]) -> None:
     """
     Print the contents of a graph dictionary.
 
@@ -542,7 +542,7 @@ def print_graph_dict(graph_dict):
     print(flush=True)
 
 
-def print_virtual_objects(virtual_objects):
+def print_virtual_objects(virtual_objects: Sequence[nx.Graph]) -> None:
     """
     Print a sequence of virtual objects (NetworkX graphs) to standard output.
 

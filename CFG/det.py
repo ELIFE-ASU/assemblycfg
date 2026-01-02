@@ -1,5 +1,6 @@
 import random
 from collections import Counter
+from typing import List, Dict, Tuple, Optional, Any, Union
 
 import networkx as nx
 import numpy as np
@@ -7,7 +8,7 @@ import numpy as np
 from .utils import get_disconnected_subgraphs
 
 
-def partition_into_disjoint_trails(graph, debug=False):
+def partition_into_disjoint_trails(graph: nx.Graph, debug: bool = False) -> List[List[Any]]:
     """
     Partition a NetworkX graph into disjoint trails (edge-disjoint walks).
 
@@ -97,7 +98,7 @@ def partition_into_disjoint_trails(graph, debug=False):
     return trails
 
 
-def get_unique_char(input_str):
+def get_unique_char(input_str: Union[str, List[str]]) -> str:
     """
     Find a unique character not present in the given input sequence.
 
@@ -132,7 +133,9 @@ def get_unique_char(input_str):
             return char
 
 
-def trails_to_sequences(trails, graph, debug=False):
+def trails_to_sequences(trails: List[List[Any]],
+                        graph: nx.Graph,
+                        debug: bool = False) -> Tuple[List[str], Dict[Tuple[Any, Any, Any], str], int]:
     """
     Convert a list of trails into encoded sequences and an assembly index.
 
@@ -213,7 +216,7 @@ def trails_to_sequences(trails, graph, debug=False):
     return sequences, char_dict, trivial_trail_count
 
 
-def repair_compression(sequences):
+def repair_compression(sequences: List[str]) -> Tuple[List[List[str]], List[Tuple[str, Tuple[str, str]]]]:
     """
     Apply a RePair-like compression to a list of symbol sequences.
 
@@ -293,7 +296,10 @@ def repair_compression(sequences):
     return seqs, rules
 
 
-def compute_assembly_path_length_from_compression(final_seqs, rules, ai_correction, debug=False):
+def compute_assembly_path_length_from_compression(final_seqs: List[List[str]],
+                                                  rules: List[Tuple[str, Tuple[str, str]]],
+                                                  ai_correction: int,
+                                                  debug: bool = False) -> int:
     """
     Compute assembly path length from RePair-compressed sequences and rules.
 
@@ -339,7 +345,10 @@ def compute_assembly_path_length_from_compression(final_seqs, rules, ai_correcti
     return length_final + num_rules + ai_correction
 
 
-def calculate_assembly_path_det(graph, iterations=1, debug=False):
+def calculate_assembly_path_det(graph: nx.Graph,
+                                iterations: int = 1,
+                                debug: bool = False) -> Tuple[
+    Union[int, float], Optional[List[nx.Graph]], Optional[nx.DiGraph]]:
     """
     Deterministic assembly-path search by repeated trail partitioning and RePair compression.
 
@@ -455,7 +464,7 @@ def calculate_assembly_path_det(graph, iterations=1, debug=False):
     return best_path_length, virtual_objects, path
 
 
-def purge_unique_units(graph):
+def purge_unique_units(graph: nx.Graph) -> Tuple[nx.Graph, int]:
     """
     Purge unique vertex-edge-vertex units from a graph.
 
@@ -527,7 +536,8 @@ def purge_unique_units(graph):
     return purged_graph, unique_units
 
 
-def process_paths(rules, char_dict):
+def process_paths(rules: List[Tuple[str, Tuple[str, str]]],
+                  char_dict: Dict[Tuple[Any, Any, Any], str]) -> Tuple[List[nx.Graph], nx.DiGraph]:
     """
     Construct virtual molecular graphs and a directed symbol graph from compression rules and a character dictionary.
 
@@ -601,7 +611,7 @@ def process_paths(rules, char_dict):
     return virtual_objects, path
 
 
-def unpack_path(symbol, rules):
+def unpack_path(symbol: str, rules: List[Tuple[str, Tuple[str, str]]]) -> str:
     """
     Recursively reconstruct a terminal sequence from a symbol using binary production rules.
 
@@ -649,7 +659,7 @@ def unpack_path(symbol, rules):
         return output
 
 
-def seq_2_mol(seq, unit_dict):
+def seq_2_mol(seq: str, unit_dict: Dict[str, Tuple[Any, Any, Any]]) -> nx.Graph:
     """
     Convert a sequence of symbols into a molecular graph.
 

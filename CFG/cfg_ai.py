@@ -1,6 +1,6 @@
 import collections
 import string
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 
 import networkx as nx
 
@@ -112,7 +112,7 @@ def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     return symbols, productions
 
 
-def convert_to_cnf(start_symbol: str,
+def convert_to_cnf(start_symbol: Union[str, List[str]],
                    productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
     """
     Convert a context-free grammar (CFG) to Chomsky Normal Form (CNF).
@@ -124,8 +124,9 @@ def convert_to_cnf(start_symbol: str,
 
     Parameters
     ----------
-    start_symbol : str
-        The start symbol or start sequence of symbols for the grammar.
+    start_symbol : Union[str, List[str]]
+        The start symbol or start sequence of symbols for the grammar. Can be a
+        string (each character treated as a symbol) or a list of symbol strings.
     productions : dict
         Mapping from non-terminal symbols (keys) to lists of symbols (values). Each value is a list
         representing the right-hand side of a production. Terminals are assumed to be lowercase ASCII
@@ -184,7 +185,7 @@ def convert_to_cnf(start_symbol: str,
 
 
 def ai_core(s: str,
-            debug=False) -> Tuple[int, Dict[str, List[str]]]:
+            debug: bool = False) -> Tuple[int, Dict[str, List[str]]]:
     """
     Convert an input string into Chomsky Normal Form (CNF) and compute a production count.
 
