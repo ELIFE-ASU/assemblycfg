@@ -8,6 +8,7 @@ version = "1.1.0"
 description = "AI bounds using smallest grammar algorithm re-pair."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
+license = { text = "MIT" }
 
 authors = [
     { name = "Gage Siebert" },
@@ -17,8 +18,8 @@ authors = [
 
 dependencies = [
     "networkx>=3.4.2",
-    "matplotlib>=3.10.1",
-    "rdkit>=2025.3.3",
+    "matplotlib>=3.9.2",
+    "rdkit>=2024.03.5",
 ]
 
 classifiers = [
@@ -29,8 +30,7 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-cov",
+    "pytest>=8.4.2",
 ]
 
 [project.urls]
