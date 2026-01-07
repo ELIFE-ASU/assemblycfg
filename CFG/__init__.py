@@ -17,4 +17,4 @@ from .utils import (safe_standardize_mol,
                     print_graph_dict,
                     print_virtual_objects)
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
