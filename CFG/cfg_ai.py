@@ -265,16 +265,16 @@ def ai_core(s: str,
     TypeError
         If ``s`` is not a string.
     """
-    start_symbol, productions = repair(s)
-    start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
+    start_symbols, productions = repair(s)
+    start_nts, cnf_productions = convert_to_cnf(start_symbols, productions)
     if debug:
-        print(f"Start symbol: {start_symbol}", flush=True)
+        print(f"Start symbols: {start_symbols}", flush=True)
         print(f"Productions: {productions}", flush=True)
         print(f"Length of Productions: {len(productions)}", flush=True)
         print(f"CNF Productions: {cnf_productions}", flush=True)
         print(f"Length of CNF Productions: {len(cnf_productions)}", flush=True)
     # return len(cnf_productions) - len(set(s)), cnf_productions
-    return len(start_symbol) - 1 + len(productions), cnf_productions
+    return len(start_symbols) - 1 + len(productions), cnf_productions
 
 
 def get_rules(s: str,
