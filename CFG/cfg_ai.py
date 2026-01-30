@@ -112,6 +112,51 @@ def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     return symbols, productions
 
 
+def joint_repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
+
+    if isinstance(s, str):
+        symbols: List[List[str]] = [list(s)]
+    else:
+        if not all(isinstance(subs, str) for subs in s):
+            raise TypeError("All elements of the input list must be strings.")
+        symbols: List[List[str]] = [list(subs) for subs in s]
+    
+    productions: Dict[str, List[str]] = {}
+    non_terminal_counter: int = 1
+
+    while True:
+        # Count the frequency of adjacent pairs and filter those occurring more than once
+
+        pair_counts = collections.Counter()
+        for subs in symbols:
+            pair_counts.update(zip(subs, subs[1:]))
+
+        frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
+
+        if not frequent_pairs:
+            break
+
+        # Find the most frequent pair and create a new non-terminal
+        most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
+        new_non_terminal = f'A{non_terminal_counter}'
+        non_terminal_counter += 1
+        productions[new_non_terminal] = list(most_frequent_pair)
+
+        for idx, subs in enumerate(symbols):
+            i = 0
+            while i < len(subs) - 1:
+                # Check if the current pair matches the most frequent pair
+                if (subs[i], subs[i + 1]) == most_frequent_pair:
+                    # Replace the pair with the new non-terminal
+                    subs[i:i + 2] = [new_non_terminal]
+                    i = max(i - 1, 0)  # Step back to handle overlapping pairs
+                else:
+                    i += 1
+            symbols[idx] = subs
+
+    return symbols, productions
+
+
 def convert_to_cnf(start_symbol: Union[str, List[str]],
                    productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
     """
