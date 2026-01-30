@@ -50,7 +50,7 @@ def rules_to_graph(rules: List[str],
     return graph
 
 
-def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
+def repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
     """
     Iteratively replace the most frequent adjacent symbol pairs in a string with new non-terminal symbols.
 
@@ -81,39 +81,6 @@ def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     TypeError
         If ``s`` is not a string.
     """
-    symbols: List[str] = list(s)
-    productions: Dict[str, List[str]] = {}
-    non_terminal_counter: int = 1
-
-    while True:
-        # Count the frequency of adjacent pairs and filter those occurring more than once
-        pair_counts = collections.Counter(zip(symbols, symbols[1:]))
-        frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
-
-        if not frequent_pairs:
-            break
-
-        # Find the most frequent pair and create a new non-terminal
-        most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
-        new_non_terminal = f'A{non_terminal_counter}'
-        non_terminal_counter += 1
-        productions[new_non_terminal] = list(most_frequent_pair)
-
-        i = 0
-        while i < len(symbols) - 1:
-            # Check if the current pair matches the most frequent pair
-            if (symbols[i], symbols[i + 1]) == most_frequent_pair:
-                # Replace the pair with the new non-terminal
-                symbols[i:i + 2] = [new_non_terminal]
-                i = max(i - 1, 0)  # Step back to handle overlapping pairs
-            else:
-                i += 1
-
-    return symbols, productions
-
-
-def joint_repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
-
     if isinstance(s, str):
         symbols: List[List[str]] = [list(s)]
     else:
