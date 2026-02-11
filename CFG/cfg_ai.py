@@ -88,6 +88,11 @@ def repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str
             raise TypeError("Input must be a string or a list of strings.")
         symbols: List[List[str]] = [list(subs) for subs in s]
     
+    # Input safety check
+    for symbol in symbols:
+        for s in symbol:
+            assert s in string.ascii_lowercase, "Input string must consist of lowercase ASCII characters only."
+
     productions: Dict[str, List[str]] = {}
     non_terminal_counter: int = 1
 
