@@ -50,7 +50,7 @@ def rules_to_graph(rules: List[str],
     return graph
 
 
-def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
+def repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
     """
     Iteratively replace the most frequent adjacent symbol pairs in a string with new non-terminal symbols.
 
@@ -81,46 +81,18 @@ def repair(s: str) -> Tuple[List[str], Dict[str, List[str]]]:
     TypeError
         If ``s`` is not a string.
     """
-    symbols: List[str] = list(s)
-    productions: Dict[str, List[str]] = {}
-    non_terminal_counter: int = 1
-
-    while True:
-        # Count the frequency of adjacent pairs and filter those occurring more than once
-        pair_counts = collections.Counter(zip(symbols, symbols[1:]))
-        frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
-
-        if not frequent_pairs:
-            break
-
-        # Find the most frequent pair and create a new non-terminal
-        most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
-        new_non_terminal = f'A{non_terminal_counter}'
-        non_terminal_counter += 1
-        productions[new_non_terminal] = list(most_frequent_pair)
-
-        i = 0
-        while i < len(symbols) - 1:
-            # Check if the current pair matches the most frequent pair
-            if (symbols[i], symbols[i + 1]) == most_frequent_pair:
-                # Replace the pair with the new non-terminal
-                symbols[i:i + 2] = [new_non_terminal]
-                i = max(i - 1, 0)  # Step back to handle overlapping pairs
-            else:
-                i += 1
-
-    return symbols, productions
-
-
-def joint_repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
-
     if isinstance(s, str):
         symbols: List[List[str]] = [list(s)]
     else:
         if not all(isinstance(subs, str) for subs in s):
-            raise TypeError("All elements of the input list must be strings.")
+            raise TypeError("Input must be a string or a list of strings.")
         symbols: List[List[str]] = [list(subs) for subs in s]
     
+    # Input safety check
+    for symbol in symbols:
+        for s in symbol:
+            assert s in string.ascii_lowercase, "Input string must consist of lowercase ASCII characters only."
+
     productions: Dict[str, List[str]] = {}
     non_terminal_counter: int = 1
 
@@ -157,7 +129,7 @@ def joint_repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, Li
     return symbols, productions
 
 
-def convert_to_cnf(start_symbol: Union[str, List[str]],
+def convert_to_cnf(start_symbols: Union[str, List[str]],
                    productions: Dict[str, List[str]]) -> Tuple[str, Dict[str, List[str]]]:
     """
     Convert a context-free grammar (CFG) to Chomsky Normal Form (CNF).
@@ -169,7 +141,7 @@ def convert_to_cnf(start_symbol: Union[str, List[str]],
 
     Parameters
     ----------
-    start_symbol : Union[str, List[str]]
+    start_symbols : Union[str, List[str]]
         The start symbol or start sequence of symbols for the grammar. Can be a
         string (each character treated as a symbol) or a list of symbol strings.
     productions : dict
@@ -179,11 +151,11 @@ def convert_to_cnf(start_symbol: Union[str, List[str]],
 
     Returns
     -------
-    start_nt : str
+    start_nts : str
         The new start non-terminal (conventionally ``S``).
     cnf_productions : dict
         A dictionary mapping non-terminals to CNF-compliant right-hand sides. Right-hand sides are
-        either a single terminal non-terminal (e.g. ``['T_a']``) or two non-terminals (e.g. ``['N1', 'B']``).
+        either a single terminal (e.g. ``['T_a']``) or two non-terminals (e.g. ``['N1', 'B']``).
         Terminal mappings for each original terminal are included as productions (``'T_a': ['a']``).
 
     Raises
@@ -197,9 +169,13 @@ def convert_to_cnf(start_symbol: Union[str, List[str]],
     cnf_productions: Dict[str, List[str]] = {}
     new_nt_counter: int = 1
 
+    if isinstance(start_symbols, str):
+        start_symbols = list(start_symbols)
+
     # Map terminals to new non-terminals
     terminals = {s for exp in productions.values() for s in exp if s in string.ascii_lowercase}
-    terminals.update(s for s in start_symbol if s in string.ascii_lowercase)
+    for start_symbol in start_symbols:
+        terminals.update(s for s in start_symbol if s in string.ascii_lowercase)
     terminal_map: Dict[str, str] = {t: f'T_{t}' for t in terminals}
     cnf_productions.update({nt: [t] for t, nt in terminal_map.items()})
 
@@ -217,19 +193,20 @@ def convert_to_cnf(start_symbol: Union[str, List[str]],
         cnf_productions[nt] = expansion
 
     # Handle the start symbol
-    start_symbols = replace_terminals(list(start_symbol))
-    start_nt = 'S'
-    while len(start_symbols) > 2:
-        new_nt = f'N{new_nt_counter}'
-        cnf_productions[new_nt] = start_symbols[:2]
-        start_symbols = [new_nt] + start_symbols[2:]
-        new_nt_counter += 1
-    cnf_productions[start_nt] = start_symbols
+    for idx, word in enumerate(start_symbols):
+        word = replace_terminals(list(word))
+        start_nt = 'S_'+str(idx)
+        while len(word) > 2:
+            new_nt = f'N{new_nt_counter}'
+            cnf_productions[new_nt] = word[:2]
+            word = [new_nt] + word[2:]
+            new_nt_counter += 1
+        cnf_productions[start_nt] = word
 
     return start_nt, cnf_productions
 
 
-def ai_core(s: str,
+def ai_core(s: Union[str, List[str]],
             debug: bool = False) -> Tuple[int, Dict[str, List[str]]]:
     """
     Convert an input string into Chomsky Normal Form (CNF) and compute a production count.
@@ -242,7 +219,7 @@ def ai_core(s: str,
 
     Parameters
     ----------
-    s : str
+    s : Union[str, List[str]]
         Input string of symbols to be processed. Each character is treated as a
         terminal symbol for the initial `repair` pass.
     debug : bool, optional
@@ -263,21 +240,27 @@ def ai_core(s: str,
     Raises
     ------
     TypeError
-        If ``s`` is not a string.
+        If ``s`` is not a string or a list of strings.
     """
-    start_symbol, productions = repair(s)
-    start_nt, cnf_productions = convert_to_cnf(start_symbol, productions)
+    start_symbols, productions = repair(s)
+    start_nts, cnf_productions = convert_to_cnf(start_symbols, productions)
     if debug:
-        print(f"Start symbol: {start_symbol}", flush=True)
+        print(f"Start symbols: {start_symbols}", flush=True)
         print(f"Productions: {productions}", flush=True)
         print(f"Length of Productions: {len(productions)}", flush=True)
         print(f"CNF Productions: {cnf_productions}", flush=True)
         print(f"Length of CNF Productions: {len(cnf_productions)}", flush=True)
     # return len(cnf_productions) - len(set(s)), cnf_productions
-    return len(start_symbol) - 1 + len(productions), cnf_productions
+
+    # Use temp to count number of terminal symbols (ai = # of non-terminal producing cnf production rules)
+    temp = ""
+    for obj in set(s): 
+        temp += obj
+
+    return len(cnf_productions) - len(set(temp)) , cnf_productions
 
 
-def get_rules(s: str,
+def get_rules(s: Union[str, List[str]],
               production: Dict[str, List[str]],
               f_print: bool = False) -> List[str]:
     """
@@ -290,8 +273,8 @@ def get_rules(s: str,
 
     Parameters
     ----------
-    s : str
-        Input sequence of terminal symbols that seed the dependency graph.
+    s : Union[str, List[str]]
+        Input string or list of strings being processed.
     production : dict
         Mapping from non-terminal symbol to its right-hand side as a list of
         symbols. Right-hand sides are expected to be length 1 or 2. Keys that
@@ -393,7 +376,7 @@ def extract_virtual_objects(rules: List[str]) -> List[str]:
     return sorted(objects, key=len)
 
 
-def ai_with_pathways(s: str, f_print: bool = False, debug: bool = False) -> Tuple[int, List[str], nx.DiGraph]:
+def ai_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug: bool = False) -> Tuple[int, List[str], nx.DiGraph]:
     """
     Compute pathway information from an input string: path length, virtual objects, and a rules graph.
 
@@ -403,8 +386,8 @@ def ai_with_pathways(s: str, f_print: bool = False, debug: bool = False) -> Tupl
 
     Parameters
     ----------
-    s : str
-        Input string to be processed. Each character is treated as an initial terminal symbol.
+    s : Union[str, List[str]]
+        Input string or list of strings to be processed. Each character is treated as an initial terminal symbol.
     f_print : bool, optional
         If True, print join-rule processing diagnostics and the computed rules. Default is False.
     debug : bool, optional
@@ -429,9 +412,9 @@ def ai_with_pathways(s: str, f_print: bool = False, debug: bool = False) -> Tupl
         productions or rules.
     """
     # Get the production rules and path length
-    ai_count, production = ai_core(s, debug=debug)
+    path_len, productions = ai_core(s, debug=debug)
     # Get the rules
-    rules = get_rules(s, production, f_print=f_print)
+    rules = get_rules(s, productions, f_print=f_print)
     # Extract virtual objects
     virt_obj = extract_virtual_objects(rules)
-    return ai_count, virt_obj, rules_to_graph(rules, virt_obj)
+    return path_len, virt_obj, rules_to_graph(rules, virt_obj)

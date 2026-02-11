@@ -121,10 +121,18 @@ def test_joint():
         AssertionError: If any of the assertions fail.
     """
     # Test input strings
-    s_inpt = "aaaa bbbb!aa"
+    s_inpt = "aaaadbbbbcaa"
     # Expected assembly calculator result
     ai_ref = 8
     # Get the assembly calculator result
     ai, virt_obj, _ = CFG.ai_with_pathways(s_inpt, f_print=True, debug=True)
     # Check if the result is correct
+    assert ai == ai_ref
+
+def test_joint2():
+
+    s_in = ["aaaa", "bbbbcaa"]
+
+    ai_ref = 6
+    ai, virt_obj, _ = CFG.ai_with_pathways(s_in, f_print=True, debug=True)
     assert ai == ai_ref
