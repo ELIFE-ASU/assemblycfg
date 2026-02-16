@@ -1,16 +1,22 @@
 # Context-Free Grammar (CFG) string assembly
 
-Directed string assembly index calculator using smallest grammar algorithm re-pair. This will find a short valid path, but there is no guarantee that it will find the shortest possible valid path.
+Directed string assembly index calculator using smallest grammar algorithm re-pair. This will find a short valid path,
+but there is no guarantee that it will find the shortest possible valid path.
 
-CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but ai_upper_with_pathways prints the joining operations of the path. 
+CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but
+ai_upper_with_pathways prints the joining operations of the path.
 
 ## Installation
-Prerequisites: you will need to have Conda installed. You could skip the pip install, but you might have issues with assemblytheorytools. Making a new environment for this package is preferred but not necessary.
+
+Prerequisites: you will need to have Conda installed. You could skip the pip install, but you might have issues with
+assemblytheorytools. Making a new environment for this package is preferred but not necessary.
+
 ```
 conda install conda-forge::networkx
 ```
 
 Use pip to install this package.
+
 ```
 pip install git+https://github.com/ELIFE-ASU/CFG.git
 ```
@@ -20,6 +26,7 @@ pip install git+https://github.com/ELIFE-ASU/CFG.git
 See the examples folder for examples of how to use the package.
 
 ### Example 1: abracadabra.
+
 ```console
 Processing abracadabra
 START SYMBOLS: a,b,r,c,d
@@ -33,9 +40,11 @@ abraca + d = abracad
 abracad + abra = abracadabra
 Path Length: 7
 ```
-This example demonstrates its ability to find and reuse paths properly. 
+
+This example demonstrates its ability to find and reuse paths properly.
 
 ### Example 2: aaaaaaa (7a's)
+
 ```console
 Processing aaaaaaa
 START SYMBOLS: a
@@ -46,10 +55,13 @@ aaaa + aa = aaaaaa
 aaaaaa + a = aaaaaaa
 Path Length: 4
 ```
-This is the classic example of LZ & breakage failing because it reuses implicitly built strings to create 7a in 3 steps. Since this algorithm guarantees valid assembly pathways, it will never do that. 
+
+This is the classic example of LZ & breakage failing because it reuses implicitly built strings to create 7a in 3 steps.
+Since this algorithm guarantees valid assembly pathways, it will never do that.
 It restricts itself to valid joining operations.
 
 ### Example 3: ababcdcd
+
 ```console
 Processing ababcdcd
 START SYMBOLS: a,b,c,d
@@ -62,5 +74,6 @@ ababcd + cd = ababcdcd
 Path Length: 5
 ```
 
-This example demonstrates that this algorithm is not limited to depth = 1 as it can build 'ab' and 'cd' independently before eventually joining them. 
+This example demonstrates that this algorithm is not limited to depth = 1 as it can build 'ab' and 'cd' independently
+before eventually joining them.
 It is not restricted to building strings from left to right and is not limited by assembly width/depth.

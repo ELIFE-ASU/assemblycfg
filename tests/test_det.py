@@ -1,7 +1,6 @@
-import copy
 import time
+
 import networkx as nx
-import pytest
 
 import CFG
 
@@ -130,7 +129,7 @@ def test_tryptophan_iterations():
     L_det, _, _ = CFG.calculate_assembly_path_det(graph, iterations=100)
 
     print(f"Path Length (DET)    : {L_det}", flush=True)
-    assert L_det >= 11 # Assert that the path is no shorter than the assembly index
+    assert L_det >= 11  # Assert that the path is no shorter than the assembly index
 
 
 def test_loads_joint():
@@ -245,11 +244,11 @@ def test_amino_acids():
         print(flush=True)
         L_det, _, _ = CFG.calculate_assembly_path_det(g)
         print(f"Path Length (DET)    : {L_det}", flush=True)
-        assert L_det >= ai_ref[i] # Assert that the path is no shorter than the assembly index
+        assert L_det >= ai_ref[i]  # Assert that the path is no shorter than the assembly index
 
     # Calculate the assembly index for the joint graph
     L_det, _, _ = CFG.calculate_assembly_path_det(graph_joint, iterations=1000)
     print(flush=True)
     print(f"Assembly Index (asscpp) : {jai_ref}", flush=True)
     print(f"Path Length (DET)    : {L_det}", flush=True)
-    assert L_det >= jai_ref # Assert that the path is no shorter than the assembly index
+    assert L_det >= jai_ref  # Assert that the path is no shorter than the assembly index

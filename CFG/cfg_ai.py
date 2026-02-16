@@ -50,7 +50,7 @@ def rules_to_graph(rules: List[str],
     return graph
 
 
-def repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
+def repair(s: Union[str, list[str]]) -> Tuple[List[List[str]], Dict[str, List[str]]]:
     """
     Iteratively replace the most frequent adjacent symbol pairs in a string with new non-terminal symbols.
 
@@ -87,7 +87,7 @@ def repair(s: Union[str,list[str]]) -> Tuple[List[List[str]], Dict[str, List[str
         if not all(isinstance(subs, str) for subs in s):
             raise TypeError("Input must be a string or a list of strings.")
         symbols: List[List[str]] = [list(subs) for subs in s]
-    
+
     # Input safety check
     for symbol in symbols:
         for s in symbol:
@@ -195,7 +195,7 @@ def convert_to_cnf(start_symbols: Union[str, List[str]],
     # Handle the start symbol
     for idx, word in enumerate(start_symbols):
         word = replace_terminals(list(word))
-        start_nt = 'S_'+str(idx)
+        start_nt = 'S_' + str(idx)
         while len(word) > 2:
             new_nt = f'N{new_nt_counter}'
             cnf_productions[new_nt] = word[:2]
@@ -254,10 +254,10 @@ def ai_core(s: Union[str, List[str]],
 
     # Use temp to count number of terminal symbols (ai = # of non-terminal producing cnf production rules)
     temp = ""
-    for obj in set(s): 
+    for obj in set(s):
         temp += obj
 
-    return len(cnf_productions) - len(set(temp)) , cnf_productions
+    return len(cnf_productions) - len(set(temp)), cnf_productions
 
 
 def get_rules(s: Union[str, List[str]],
@@ -376,7 +376,8 @@ def extract_virtual_objects(rules: List[str]) -> List[str]:
     return sorted(objects, key=len)
 
 
-def ai_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug: bool = False) -> Tuple[int, List[str], nx.DiGraph]:
+def ai_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug: bool = False) -> Tuple[
+    int, List[str], nx.DiGraph]:
     """
     Compute pathway information from an input string: path length, virtual objects, and a rules graph.
 

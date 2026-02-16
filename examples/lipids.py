@@ -157,7 +157,8 @@ def get_bounds(smiles_list):
 if __name__ == "__main__":
     l_n = [0]
     base_path = os.path.dirname(__file__)
-    with open(os.path.join(base_path, 'ln_9999.txt'), 'r') as file: # This file contains precomputed shortest addition chain values
+    with open(os.path.join(base_path, 'ln_9999.txt'),
+              'r') as file:  # This file contains precomputed shortest addition chain values
         # Skip the header line
         next(file)
         next(file)
@@ -174,10 +175,10 @@ if __name__ == "__main__":
 
     ai_list = [3, 4, 4, 5, 5, 6, 5, 6, 6, 7, 6, 7, 7, 7, 6, 7]
     L_det_list, ai_lower_list = get_bounds(fatty_acid_smiles)
-    
+
     ai_list_trig = [7, 8, 8, 9, 9, 10, 9, 10, 10, 11, 10, 11, 11, 11, 10, 11]
     L_det_list_trig, ai_lower_list_trig = get_bounds(triglyceride_smiles)
-    
+
     ai_list_phos = [14, 15, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 18, 18]
     L_det_list_phos, ai_lower_list_phos = get_bounds(phospholipid_smiles)
 

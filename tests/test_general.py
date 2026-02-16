@@ -129,8 +129,8 @@ def test_joint():
     # Check if the result is correct
     assert ai == ai_ref
 
-def test_joint2():
 
+def test_joint2():
     s_in = ["aaaa", "bbbbcaa"]
 
     ai_ref = 6
