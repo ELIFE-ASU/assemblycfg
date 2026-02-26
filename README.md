@@ -1,15 +1,15 @@
 # Context-Free Grammar (CFG) string assembly
 
-Directed string assembly index calculator using smallest grammar algorithm re-pair. This will find a short valid path,
-but there is no guarantee that it will find the shortest possible valid path.
+Directed string assembly index calculator using the smallest grammar algorithm re-pair. This will find a short, valid path.
+But there is no guarantee that it will find the shortest possible valid path.
 
 CFG/cfg_ai.py has two useful functions: ai_upper and ai_upper_with_pathways. Both return the same path length, but
 ai_upper_with_pathways prints the joining operations of the path.
 
 ## Installation
 
-Prerequisites: you will need to have Conda installed. You could skip the pip install, but you might have issues with
-assemblytheorytools. Making a new environment for this package is preferred but not necessary.
+Prerequisites: You will need to have Conda installed. You could skip the pip install, but you might have issues with
+assemblytheorytools. Making a new environment for this package is preferred, but not necessary.
 
 ```
 conda install conda-forge::networkx
@@ -18,7 +18,7 @@ conda install conda-forge::networkx
 Use pip to install this package.
 
 ```
-pip install git+https://github.com/ELIFE-ASU/CFG.git
+pip install git+https://github.com/ELIFE-ASU/assemblycfg.git
 ```
 
 ## Examples
@@ -74,6 +74,6 @@ ababcd + cd = ababcdcd
 Path Length: 5
 ```
 
-This example demonstrates that this algorithm is not limited to depth = 1 as it can build 'ab' and 'cd' independently
+This example demonstrates that this algorithm is not limited to depth = 1, as it can build 'ab' and 'cd' independently
 before eventually joining them.
 It is not restricted to building strings from left to right and is not limited by assembly width/depth.
