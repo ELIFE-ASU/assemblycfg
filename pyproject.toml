@@ -3,7 +3,7 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "CFG"
+name = "assemblycfg"
 version = "1.2.1"
 description = "AI bounds using smallest grammar algorithm re-pair."
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -14,6 +14,7 @@ authors = [
     { name = "Gage Siebert" },
     { name = "Redwan Chowdhury" },
     { name = "Louie Slocombe" },
+    { name = "Sara I. Walker" },
 ]
 
 dependencies = [
@@ -34,11 +35,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ELIFE-ASU/CFG"
-Repository = "https://github.com/ELIFE-ASU/CFG"
+Homepage = "https://github.com/ELIFE-ASU/assemblycfg"
+Repository = "https://github.com/ELIFE-ASU/assemblycfg"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
+
