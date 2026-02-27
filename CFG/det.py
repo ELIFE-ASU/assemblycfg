@@ -107,14 +107,14 @@ def get_unique_char(input_str: Union[str, List[str]]) -> str:
 
     Parameters
     ----------
-    input_str : str or collections.abc.Iterable
+    input_str : str or list of str
         Input sequence of characters (for example, a Python string or an iterable
         of single-character strings). Membership tests are performed against the
         elements of this iterable.
 
     Returns
     -------
-    char : str
+    str
         A single-character string representing a Unicode code point not found in
         ``input_str``.
 

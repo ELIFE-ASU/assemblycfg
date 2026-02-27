@@ -62,7 +62,7 @@ def repair(s: Union[str, list[str]]) -> Tuple[List[List[str]], Dict[str, List[st
 
     Parameters
     ----------
-    s : str
+    s : str or list of str
         Input string of symbols (each character treated as a symbol). The function
         operates on single-character symbols and produces new multi-character
         non-terminal symbols of the form ``A{n}``.

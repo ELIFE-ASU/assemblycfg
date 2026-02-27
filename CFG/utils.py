@@ -60,8 +60,8 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> O
     and converts it into an RDKit molecule object. Optionally, the molecule can be
     sanitized and explicit hydrogens can be added.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     smi : str
         A SMILES string representing the molecular structure.
     add_hydrogens : bool, optional
@@ -69,18 +69,18 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> O
     sanitize : bool, optional
         If True, sanitizes the molecule after conversion. Defaults to True.
 
-    Returns:
-    --------
+    Returns
+    -------
     Chem.Mol
         An RDKit molecule object representing the input SMILES string.
 
-    Raises:
-    -------
+    Raises
+    ------
     Warning
         If the SMILES string contains disconnected molecules (indicated by a '.' character).
 
-    Notes:
-    ------
+    Notes
+    -----
     - The function uses RDKit's `MolFromSmiles` to create the molecule object.
     - Sanitization ensures the molecule is chemically valid and standardized.
     - Disconnected molecules in the SMILES string are flagged with a warning.
@@ -505,7 +505,6 @@ def mol2graph(mol_file: str) -> Dict[Any, Dict[str, Any]]:
         If the provided file path does not exist.
     ValueError
         If RDKit fails to parse the file into a valid molecule.
-    True
     """
     mol = molfile_to_mol(mol_file)  # Convert the molecular file to a molecule object
     mol_graph = mol_to_nx(mol)  # Convert the molecule object to a NetworkX graph
