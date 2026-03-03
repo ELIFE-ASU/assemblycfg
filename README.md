@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 nx.draw(path, with_labels=True, font_weight='bold', pos=nx.spring_layout(path))
 plt.show()
 ```
-though these pathway visuals easy get unweildy. We recommend the python package AssemblyTheoryTools for more sophisticated pathway plotting functions.
+though these pathway visuals easy get unweildy. We recommend the python package AssemblyTheoryTools for more sophisticated pathway plotting functions. This expects strings made of lowercase ascii characters (see `string.ascii_lowercase`), and you can also pass it a list of strings if you want to find a short joint assembly path for them.
 
 One can also apply these methods to molecular assembly index. The function `calculate_assembly_path_det` can place a valid upper bound on the assembly index of any molecule, though it performs best on 'stringy' molecules like lipids. Starting from a SMILES string for cholesterol, we convert it into a networkx graph format before passing it to the calculator.
 ```
