@@ -42,6 +42,8 @@ molgraph = cfg.smi_to_nx(smi_to_nx)
 l, vo, path = cfg.calculate_assembly_path_det(molgraph)
 print(f'a(Cholesterol) =< {l}')
 ```
-The virtual objects will also be networkx graphs representing molecular fragments.
+These virtual objects will also be networkx graphs representing molecular fragments.
 
 See the examples folder for more examples of how to use the package.
+
+These algorithms are described in Siebert et al. (In Prep); if you find this package useful, please cite this paper.
