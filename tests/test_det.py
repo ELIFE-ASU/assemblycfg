@@ -2,7 +2,7 @@ import time
 
 import networkx as nx
 
-import CFG
+import assemblycfg as CFG
 
 
 def test_basic():
