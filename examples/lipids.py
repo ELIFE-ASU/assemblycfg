@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from rdkit import Chem
 
-import CFG
+import assemblycfg as CFG
 
 # Setting plot aesthetics for better visibility
 plt.rcParams['axes.linewidth'] = 2.0
