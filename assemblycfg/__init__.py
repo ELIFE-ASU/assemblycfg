@@ -1,4 +1,4 @@
-from .cfg_ai import (ai_core, ai_with_pathways)
+from .cfg_ai import (ai_core, repair_with_pathways)
 
 from .det import (calculate_assembly_path_det)
 
