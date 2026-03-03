@@ -376,7 +376,7 @@ def extract_virtual_objects(rules: List[str]) -> List[str]:
     return sorted(objects, key=len)
 
 
-def ai_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug: bool = False) -> Tuple[
+def repair_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug: bool = False) -> Tuple[
     int, List[str], nx.DiGraph]:
     """
     Compute pathway information from an input string: path length, virtual objects, and a rules graph.
