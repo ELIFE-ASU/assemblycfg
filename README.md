@@ -16,7 +16,7 @@ pip install assemblycfg
 ```
 
 Archived release:
-[![DOI](https://zenodo.org/badge/873320849.svg)](https://doi.org/10.5281/zenodo.20562899)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20562899.svg)](https://doi.org/10.5281/zenodo.20562899)
 
 ## Examples
 
