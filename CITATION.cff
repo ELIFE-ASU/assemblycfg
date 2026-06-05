@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+title: "assemblycfg"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+authors:
+  - family-names: "Siebert"
+    given-names: "Gage"
+    orcid: "https://orcid.org/0000-0002-9390-4716"
+  - family-names: "Chowdhury"
+    given-names: "Redwan"
+  - family-names: "Slocombe"
+    given-names: "Louie"
+    orcid: "https://orcid.org/0000-0002-6986-5526"
+  - family-names: "Walker"
+    given-names: "Sara"
+    orcid: "https://orcid.org/0000-0001-5779-2772"
+repository-code: "https://github.com/ELIFE-ASU/assemblycfg"
+url: "https://pypi.org/project/assemblycfg/"
+license: "MIT"
+version: "1.2.3"
+date-released: "2026-06-05"
