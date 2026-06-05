@@ -15,6 +15,9 @@ Use pip to install this package.
 pip install assemblycfg
 ```
 
+Archived release:
+[![DOI](https://zenodo.org/badge/873320849.svg)](https://doi.org/10.5281/zenodo.20562899)
+
 ## Examples
 
 The central function of this package, `cfg.repair_with_pathways` returns three items. First it returns the integer path length with upper bounds the assembly index, second it returns the list of virtual object strings which were used along the assembly path identified by RePair, and third it returns a networkx DiGraph object depicting the assembly path.
