@@ -44,6 +44,6 @@ print(f'a(Cholesterol) =< {l}')
 ```
 These virtual objects will also be networkx graphs representing molecular fragments.
 
-See the examples folder for more examples of how to use the package. An implimentation of LZ77 is also included in the directory "Breakage", for placing lower bounds on the assembly index of directed strings.
+See the examples folder for more examples of how to use the package. An implementation of LZ77 is also included in the directory "Breakage", for placing lower bounds on the assembly index of directed strings.
 
 These algorithms are described in Siebert et al. (In Prep); if you find this package useful, please cite this paper.
