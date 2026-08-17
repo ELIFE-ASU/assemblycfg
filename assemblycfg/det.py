@@ -394,11 +394,11 @@ def calculate_assembly_path_det(graph: nx.Graph,
         If `graph` is not a NetworkX graph or if required node/edge attributes
         are missing such that downstream processing cannot proceed.
     ValueError
-        If the input graph is detected as trivial (no meaningful compression or
-        assembly path can be computed) the function may return early rather than
-        raise; callers should validate input separately if exceptions are
-        preferred.
+        If ``iterations`` is less than one.
     """
+
+    if iterations < 1:
+        raise ValueError("iterations must be at least 1")
 
     # Find the joint correction
     n_joint_correction = len(get_disconnected_subgraphs(graph)) - 1
@@ -414,7 +414,8 @@ def calculate_assembly_path_det(graph: nx.Graph,
                 trivial = False
                 break
         if trivial:
-            print("Trivial input detected. Returning early.", flush=True)
+            if debug:
+                print("Trivial input detected. Returning early.", flush=True)
             return 0, None, None
 
     # Extract all original units (vertex color-edge color-vertex color triples) from the graph
@@ -422,7 +423,6 @@ def calculate_assembly_path_det(graph: nx.Graph,
 
     # Initialise best path vars
     best_path_length = inf
-    best_final_seqs = None
     best_rules = None
 
     # Repeat the process for a number of iterations, and keep the best path
@@ -453,7 +453,6 @@ def calculate_assembly_path_det(graph: nx.Graph,
         # Update the best path vars
         if path_len < best_path_length:
             best_path_length = path_len
-            best_final_seqs = final_seqs
             best_rules = rules
             best_dict = char_dict
 
@@ -584,26 +583,27 @@ def process_paths(rules: List[Tuple[str, Tuple[str, str]]],
     """
     path = nx.DiGraph()  # Initialize a directed graph
     symbol_virtual_objects = []  # List to store unique symbols as virtual objects
+    symbol_nodes = {}
+
+    def ensure_symbol(symbol: str) -> int:
+        if symbol not in symbol_nodes:
+            symbol_nodes[symbol] = len(symbol_virtual_objects)
+            symbol_virtual_objects.append(symbol)
+            path.add_node(symbol_nodes[symbol])
+        return symbol_nodes[symbol]
 
     # Iterate through the rules to construct the graph
     for rule in rules:
         new_symbol, (sym1, sym2) = rule
-        # Create a new virtual object node if it doesn't already exist
-        if new_symbol not in symbol_virtual_objects:
-            symbol_virtual_objects.append(new_symbol)
-            path.add_node(len(symbol_virtual_objects))
+        new_symbol_node = ensure_symbol(new_symbol)
         # Add edges for the components of the rule
         for sym in [sym1, sym2]:
-            if sym not in symbol_virtual_objects:
-                symbol_virtual_objects.append(sym)
-                path.add_node(len(symbol_virtual_objects))
-            if (symbol_virtual_objects.index(new_symbol), symbol_virtual_objects.index(sym)) not in path.edges:
-                path.add_edge(symbol_virtual_objects.index(new_symbol), symbol_virtual_objects.index(sym))
+            path.add_edge(new_symbol_node, ensure_symbol(sym))
 
     # Process the virtual objects to generate molecular graphs
     virtual_objects = []  # List to store molecular graphs
     unit_dict = {v: k for k, v in char_dict.items()}  # Reverse the character dictionary
-    for s_idx, symbol in enumerate(symbol_virtual_objects):
+    for symbol in symbol_virtual_objects:
         # Reconstruct the sequence for the symbol and convert it to a molecular graph
         seq = unpack_path(symbol, rules)
         mol_graph = seq_2_mol(seq, unit_dict)

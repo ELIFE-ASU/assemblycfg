@@ -170,7 +170,7 @@ def convert_to_cnf(start_symbols: Union[str, List[str]],
     new_nt_counter: int = 1
 
     if isinstance(start_symbols, str):
-        start_symbols = list(start_symbols)
+        start_symbols = [start_symbols]
 
     # Map terminals to new non-terminals
     terminals = {s for exp in productions.values() for s in exp if s in string.ascii_lowercase}
@@ -304,8 +304,13 @@ def get_rules(s: Union[str, List[str]],
     adj: Dict[str, List[str]] = collections.defaultdict(list)
     tmap: Dict[str, str] = {}
 
-    # Initialize in-degrees and adjacency list
-    for c in s:
+    # Initialize in-degrees and adjacency list. Joint inputs need to be
+    # flattened so their terminal symbols, rather than the complete strings,
+    # become the roots of the dependency graph.
+    initial_symbols = (
+        s if isinstance(s, str) else (symbol for word in s for symbol in word)
+    )
+    for c in initial_symbols:
         in_degrees[c] = 0
     for course, prereqs in production.items():
         for req in prereqs:

@@ -3,7 +3,6 @@ from typing import List, Dict, Any, Sequence, Optional
 
 import networkx as nx
 from rdkit import Chem
-from rdkit.Chem import AllChem as Chem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
 
@@ -52,7 +51,7 @@ def safe_standardize_mol(mol: Chem.Mol, add_hydrogens: bool = True) -> Chem.Mol:
     return mol
 
 
-def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> Optional[Chem.Mol]:
+def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> Chem.Mol:
     """
     Convert a SMILES string to an RDKit molecule object.
 
@@ -76,7 +75,12 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> O
 
     Raises
     ------
-    Warning
+    ValueError
+        If RDKit cannot parse ``smi``.
+
+    Warns
+    -----
+    UserWarning
         If the SMILES string contains disconnected molecules (indicated by a '.' character).
 
     Notes
@@ -89,6 +93,8 @@ def smi_to_mol(smi: str, add_hydrogens: bool = True, sanitize: bool = True) -> O
         warnings.warn("Disconnected molecules detected in SMILES string. Ensure proper handling of these molecules.")
     # Convert the SMILES string to an RDKit molecule object
     mol = Chem.MolFromSmiles(smi, sanitize=False)
+    if mol is None:
+        raise ValueError(f"Unable to parse SMILES: {smi!r}")
     # Sanitise the molecule
     if sanitize:
         return safe_standardize_mol(mol, add_hydrogens=add_hydrogens)
@@ -459,7 +465,8 @@ def dict_to_nx(graph_dict: Dict[Any, Dict[str, Any]]) -> nx.Graph:
         (``'vertex_color'``, ``'neighbors'``, ``'edge_colors'``).
     ValueError
         If the lengths of ``'neighbors'`` and ``'edge_colors'`` for any node do
-        not match.
+        not match, a neighbor is undeclared, or reciprocal entries assign
+        conflicting colors to the same edge.
     """
     graph = nx.Graph()
 
@@ -469,9 +476,23 @@ def dict_to_nx(graph_dict: Dict[Any, Dict[str, Any]]) -> nx.Graph:
 
     # Add edges with their attributes
     for node_id, node_data in graph_dict.items():
-        for neighbor, edge_color in zip(node_data['neighbors'], node_data['edge_colors']):
+        if len(node_data['neighbors']) != len(node_data['edge_colors']):
+            raise ValueError(
+                f"Node {node_id!r} has different numbers of neighbors and edge colors"
+            )
+        for neighbor, edge_color in zip(
+            node_data['neighbors'], node_data['edge_colors']
+        ):
+            if neighbor not in graph_dict:
+                raise ValueError(
+                    f"Node {node_id!r} references unknown neighbor {neighbor!r}"
+                )
             if not graph.has_edge(node_id, neighbor):
                 graph.add_edge(node_id, neighbor, color=edge_color)
+            elif graph[node_id][neighbor]['color'] != edge_color:
+                raise ValueError(
+                    f"Edge {node_id!r}-{neighbor!r} has conflicting colors"
+                )
 
     return graph
 
