@@ -1,52 +1,100 @@
 # Context-Free Grammars and String Assembly Index
 
-Directed string assembly index calculator using the smallest grammar algorithm RePair. This will quickly find a short assembly path, but there is no guarantee that it will find the shortest possible assembly path. Thus, this path length serves as an upper bound to the assembly index. This method works best on strings but can also be applied to molecular graphs as we will demonstrate below.
+[![PyPI](https://img.shields.io/pypi/v/assemblycfg.svg)](https://pypi.org/project/assemblycfg/)
+[![Python](https://img.shields.io/pypi/pyversions/assemblycfg.svg)](https://pypi.org/project/assemblycfg/)
+[![CI](https://github.com/ELIFE-ASU/assemblycfg/actions/workflows/ci.yml/badge.svg)](https://github.com/ELIFE-ASU/assemblycfg/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20562899.svg)](https://doi.org/10.5281/zenodo.20562899)
+
+`assemblycfg` calculates upper bounds on directed string and molecular assembly
+indices using the RePair smallest-grammar algorithm. It quickly finds a short
+assembly path, but it does not guarantee the shortest possible path.
 
 ## Installation
 
-Prerequisites: 
-networkx >= 3.4.2
-rdkit >=2024.03.5
-matplotlib>=3.9.2
+`assemblycfg` supports Python 3.12 and later. Install the package from PyPI; its
+runtime dependencies are installed automatically:
 
-Use pip to install this package.
-
-```
-pip install assemblycfg
+```bash
+python -m pip install assemblycfg
 ```
 
-Archived release:
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20562899.svg)](https://doi.org/10.5281/zenodo.20562899)
+Plotting is optional. To run the visual examples, install the `plot` extra:
 
-## Examples
-
-The central function of this package, `cfg.repair_with_pathways` returns three items. First it returns the integer path length with upper bounds the assembly index, second it returns the list of virtual object strings which were used along the assembly path identified by RePair, and third it returns a networkx DiGraph object depicting the assembly path.
-
+```bash
+python -m pip install "assemblycfg[plot]"
 ```
+
+## String assembly
+
+The central function, `repair_with_pathways`, returns an upper bound on the
+assembly index, the virtual objects used along the path, and a NetworkX directed
+graph representing that path:
+
+```python
 import assemblycfg as cfg
-l, vo, path = cfg.repair_with_pathways("abracadabra")
-print(f'a("abracadabra") =< {l}')
-print(f"Virtual objects used: {vo}")
+
+length, virtual_objects, path = cfg.repair_with_pathways("abracadabra")
+print(f'a("abracadabra") <= {length}')
+print(f"Virtual objects used: {virtual_objects}")
 ```
-You can visualize the pathway as follows
-```
-import networkx as nx
+
+Inputs may be a lowercase ASCII string or a list of such strings for a joint
+assembly path.
+
+With the optional plotting dependency installed, the path can be visualized as
+follows:
+
+```python
 import matplotlib.pyplot as plt
-nx.draw(path, with_labels=True, font_weight='bold', pos=nx.spring_layout(path))
+import networkx as nx
+
+nx.draw(path, with_labels=True, font_weight="bold", pos=nx.spring_layout(path))
 plt.show()
 ```
-though these pathway visuals easy get unweildy. We recommend the python package AssemblyTheoryTools for more sophisticated pathway plotting functions. This expects strings made of lowercase ascii characters (see `string.ascii_lowercase`), and you can also pass it a list of strings if you want to find a short joint assembly path for them.
 
-One can also apply these methods to molecular assembly index. The function `calculate_assembly_path_det` can place a valid upper bound on the assembly index of any molecule, though it performs best on 'stringy' molecules like lipids. Starting from a SMILES string for cholesterol, we convert it into a networkx graph format before passing it to the calculator.
-```
+These graphs can become unwieldy. The
+[AssemblyTheoryTools](https://pypi.org/project/assemblytheorytools/) package
+provides more sophisticated pathway plotting functions.
+
+## Molecular assembly
+
+`calculate_assembly_path_det` places a valid upper bound on the assembly index
+of a molecule. It performs especially well on string-like molecules such as
+lipids. For example:
+
+```python
 import assemblycfg as cfg
-smi_str = "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C" # SMILES string for cholesterol
-molgraph = cfg.smi_to_nx(smi_to_nx)
-l, vo, path = cfg.calculate_assembly_path_det(molgraph)
-print(f'a(Cholesterol) =< {l}')
+
+smiles = "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C"
+molgraph = cfg.smi_to_nx(smiles)
+length, virtual_objects, path = cfg.calculate_assembly_path_det(molgraph)
+print(f"a(Cholesterol) <= {length}")
 ```
-These virtual objects will also be networkx graphs representing molecular fragments.
 
-See the examples folder for more examples of how to use the package. An implementation of LZ77 is also included in the directory "Breakage", for placing lower bounds on the assembly index of directed strings.
+The virtual objects returned by the molecular workflow are NetworkX graphs that
+represent molecular fragments. More complete programs are available in the
+[`examples`](https://github.com/ELIFE-ASU/assemblycfg/tree/main/examples)
+directory.
 
-These algorithms are described in Siebert et al. (In Prep); if you find this package useful, please cite this paper.
+## Development
+
+Development dependencies use the standardized dependency-groups table. With a
+recent version of pip:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install --group dev -e .
+python -m pytest
+python -m build
+python scripts/check_dist.py
+```
+
+Maintainers should follow the version and Trusted Publishing checklist in
+[`RELEASING.md`](https://github.com/ELIFE-ASU/assemblycfg/blob/main/RELEASING.md).
+
+## Citation
+
+If you use this package, cite the archived software release at
+[doi:10.5281/zenodo.20562899](https://doi.org/10.5281/zenodo.20562899). Complete
+software citation metadata is provided in
+[`CITATION.cff`](https://github.com/ELIFE-ASU/assemblycfg/blob/main/CITATION.cff).

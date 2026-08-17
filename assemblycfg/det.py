@@ -1,9 +1,9 @@
 import random
 from collections import Counter
+from math import inf
 from typing import List, Dict, Tuple, Optional, Any, Union
 
 import networkx as nx
-import numpy as np
 
 from .utils import get_disconnected_subgraphs
 
@@ -378,7 +378,8 @@ def calculate_assembly_path_det(graph: nx.Graph,
     -------
     best_path_length : int or float
         The smallest assembly/path length found across all iterations. May be
-        0 for trivial inputs or `numpy.inf` if no valid partitions were produced.
+        0 for trivial inputs or positive infinity if no valid partitions were
+        produced.
     virtual_objects : list or None
         List of reconstructed molecular-graph objects (one per discovered symbol)
         produced by unpacking the final compression rules with the character
@@ -420,7 +421,7 @@ def calculate_assembly_path_det(graph: nx.Graph,
     purged_graph, unique_units = purge_unique_units(graph)
 
     # Initialise best path vars
-    best_path_length = np.inf
+    best_path_length = inf
     best_final_seqs = None
     best_rules = None
 

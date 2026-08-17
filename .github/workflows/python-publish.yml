@@ -1,12 +1,4 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Upload Python Package
+name: Publish to PyPI
 
 on:
   release:
@@ -20,23 +12,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group release --group test .
+
+      - name: Run tests
+        run: python -m pytest
 
       - name: Build release distributions
+        run: python -m build
+
+      - name: Validate release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
-          python -m pip install build
-          python -m build
+          python -m twine check --strict dist/*
+          python scripts/check_dist.py --tag "$GITHUB_REF_NAME"
+
+      - name: Smoke-test the wheel
+        run: |
+          python -m pip install --force-reinstall dist/*.whl
+          python -m pip check
+          cd "$RUNNER_TEMP"
+          python -c 'import assemblycfg; from importlib.metadata import version; assert assemblycfg.__version__ == version("assemblycfg")'
+          python -m pytest -q --import-mode=importlib --rootdir="$RUNNER_TEMP" "$GITHUB_WORKSPACE/tests"
 
       - name: Upload distributions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-dists
           path: dist/
+          if-no-files-found: error
 
   pypi-publish:
     runs-on: ubuntu-latest
@@ -50,21 +65,16 @@ jobs:
     # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/YOURPROJECT
-      #
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
+      url: https://pypi.org/p/assemblycfg
 
     steps:
       - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-dists
           path: dist/
 
       - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: dist/
