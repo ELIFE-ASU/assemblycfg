@@ -1,10 +1,11 @@
+import random
 from collections import Counter
 
 import networkx as nx
 import pytest
 
 import assemblycfg as cfg
-from assemblycfg.cfg_ai import convert_to_cnf, repair
+from assemblycfg.cfg_ai import convert_to_cnf, repair, repair_pairs
 
 ABRACADABRA_OBJECTS = {
     "a",
@@ -43,6 +44,40 @@ def test_repair_shares_productions_across_joint_input():
     assert symbols == [["A1", "A1"], ["A2", "A2", "c", "A1"]]
     assert productions == {"A1": ["a", "a"], "A2": ["b", "b"]}
 
+
+
+def naive_repair(sequences):
+    """Recount every pair each round: the quadratic definition of RePair."""
+    seqs = [list(seq) for seq in sequences]
+    rules = []
+    while True:
+        counts = Counter()
+        for seq in seqs:
+            counts.update(zip(seq, seq[1:]))
+        frequent = {pair: c for pair, c in counts.items() if c > 1}
+        if not frequent:
+            return seqs, rules
+        pair = max(frequent, key=frequent.get)
+        rules.append((f"R{len(rules)}", pair))
+        for idx, seq in enumerate(seqs):
+            out, i = [], 0
+            while i < len(seq):
+                if tuple(seq[i:i + 2]) == pair:
+                    out.append(rules[-1][0])
+                    i += 2
+                else:
+                    out.append(seq[i])
+                    i += 1
+            seqs[idx] = out
+
+
+@pytest.mark.parametrize("alphabet", ["a", "ab", "abc", "acgt"])
+def test_repair_pairs_matches_naive_repair(alphabet):
+    rng = random.Random(alphabet)
+    for _ in range(200):
+        sequences = ["".join(rng.choice(alphabet) for _ in range(rng.randint(0, 40)))
+                     for _ in range(rng.randint(1, 3))]
+        assert repair_pairs(sequences, lambda i: f"R{i}") == naive_repair(sequences)
 
 @pytest.mark.parametrize("source", ["Uppercase", "lowercase1"])
 def test_repair_rejects_non_lowercase_ascii(source):

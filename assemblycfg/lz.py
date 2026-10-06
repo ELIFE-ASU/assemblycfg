@@ -7,6 +7,8 @@ in the string. The fewest such steps needed to build the string, found by
 dynamic programming over its prefixes, is a lower bound on its assembly index.
 """
 
+from typing import Dict, List, Tuple
+
 
 def lz_lower_bound(string: str) -> int:
     """
@@ -35,9 +37,11 @@ def lz_lower_bound(string: str) -> int:
 
     Notes
     -----
-    ``dp`` never decreases, so the cheapest suffix to reuse is the longest,
-    and whether ``string[j:i + 1]`` occurs in ``string[:j]`` is monotone in
-    ``j``. A binary search over ``j`` therefore finds it.
+    ``dp`` never decreases, so the cheapest suffix to reuse is the longest.
+    The start ``j`` of that suffix never decreases with ``i`` either, so one
+    pass slides the window ``string[j:i + 1]`` across a suffix automaton
+    that records where each substring first ends. The bound takes linear
+    time.
 
     Examples
     --------
@@ -50,16 +54,56 @@ def lz_lower_bound(string: str) -> int:
     if not string:
         raise ValueError("Input must be a non-empty string")
 
+    end, link, length, edges = _suffix_automaton(string)
     dp = [0] * len(string)
+    # The window string[j:i + 1] is the automaton state v, of size n.
+    j, v, n = 1, 0, 0
     for i in range(1, len(string)):
-        dp[i] = dp[i - 1] + 1
-        # Smallest j > 0 whose suffix string[j:i + 1] occurs in string[:j].
-        low, high = 1, i
-        while low <= high:
-            mid = (low + high) // 2
-            if string[mid:i + 1] in string[:mid]:
-                dp[i] = min(dp[i], dp[mid - 1] + 1)
-                high = mid - 1
-            else:
-                low = mid + 1
+        v = edges[v][string[i]]
+        n += 1
+        # Shrink the window until its first occurrence ends before j.
+        while n and end[v] >= j:
+            j += 1
+            n -= 1
+            if n == length[link[v]]:
+                v = link[v]
+        dp[i] = dp[j - 1] + 1 if n else dp[i - 1] + 1
     return dp[-1]
+
+
+def _suffix_automaton(string: str) -> Tuple[List[int], List[int], List[int], List[Dict[str, int]]]:
+    """
+    Build the suffix automaton of *string*.
+
+    Returns, per state, the end of the first occurrence of its substrings,
+    its suffix link, the length of its longest substring and its edges.
+    State 0 is the empty string.
+    """
+    end, link, length, edges = [-1], [-1], [0], [{}]
+    last = 0
+    for i, char in enumerate(string):
+        cur = len(length)
+        end.append(i)
+        link.append(0)
+        length.append(length[last] + 1)
+        edges.append({})
+        p = last
+        while p != -1 and char not in edges[p]:
+            edges[p][char] = cur
+            p = link[p]
+        if p != -1:
+            q = edges[p][char]
+            if length[p] + 1 == length[q]:
+                link[cur] = q
+            else:
+                clone = len(length)
+                end.append(end[q])
+                link.append(link[q])
+                length.append(length[p] + 1)
+                edges.append(dict(edges[q]))
+                while p != -1 and edges[p].get(char) == q:
+                    edges[p][char] = clone
+                    p = link[p]
+                link[q] = link[cur] = clone
+        last = cur
+    return end, link, length, edges
