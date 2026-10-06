@@ -1,10 +1,10 @@
 import random
-from collections import Counter
 from math import inf
 from typing import List, Dict, Tuple, Optional, Any, Union
 
 import networkx as nx
 
+from .cfg_ai import repair_pairs
 from .utils import get_disconnected_subgraphs
 
 
@@ -254,46 +254,7 @@ def repair_compression(sequences: List[str]) -> Tuple[List[List[str]], List[Tupl
         only if a collision policy is later introduced).
     """
 
-    seqs = [list(seq) for seq in sequences]  # copy
-    rules = []
-    next_nonterminal_id = 0
-
-    while True:
-        pairs = Counter()
-        for seq in seqs:
-            pairs.update(Counter(zip(seq, seq[1:])))
-        # Find the most frequent pair that occurs more than once
-        pair, freq = None, 1
-        for p, f in pairs.items():
-            if f > freq:
-                pair, freq = p, f
-
-        if pair is None:
-            break
-
-        # Introduce a new symbol
-        new_symbol = f"NT_{next_nonterminal_id}"
-        next_nonterminal_id += 1
-        rules.append((new_symbol, pair))
-
-        # Replace all occurrences of pair with new_symbol
-        # Efficient replacement:
-        # We'll scan seq and whenever we see pair[i], pair[i+1], replace them with new_symbol.
-        for s_idx, seq in enumerate(seqs):
-            i = 0
-            new_seq = []
-            while i < len(seq):
-                if i < len(seq) - 1 and (seq[i], seq[i + 1]) == pair:
-                    new_seq.append(new_symbol)
-                    i += 2
-                else:
-                    new_seq.append(seq[i])
-                    i += 1
-            seqs[s_idx] = new_seq
-
-        # Repeat until no more frequent pairs
-
-    return seqs, rules
+    return repair_pairs([list(seq) for seq in sequences], lambda i: f"NT_{i}")
 
 
 def compute_assembly_path_length_from_compression(final_seqs: List[List[str]],

@@ -1,8 +1,149 @@
 import collections
+import heapq
 import string
-from typing import List, Tuple, Dict, Union
+from typing import Callable, Hashable, List, Sequence, Tuple, Dict, Union
 
 import networkx as nx
+
+
+def repair_pairs(sequences: Sequence[Sequence[Hashable]],
+                 new_symbol: Callable[[int], Hashable]
+                 ) -> Tuple[List[List[Hashable]], List[Tuple[Hashable, Tuple[Hashable, Hashable]]]]:
+    """
+    Run RePair over symbol sequences in near-linear time.
+
+    Repeatedly replaces the adjacent pair that occurs most often (counting
+    overlapping occurrences, and never across sequences) with a fresh
+    symbol, until no pair occurs more than once. Ties go to the pair that
+    occurs first, and each replacement scans left to right. This is the
+    textbook quadratic loop, made incremental: the sequences are linked
+    lists, every pair keeps a heap of its positions, and the pairs sit in a
+    heap keyed by count and first position, so each round touches only the
+    occurrences it replaces and their neighbours.
+
+    Parameters
+    ----------
+    sequences : sequence of sequences of hashable
+        The input sequences. They are not modified.
+    new_symbol : callable
+        Maps the 0-based index of a new rule to its symbol, which must not
+        occur in the input.
+
+    Returns
+    -------
+    final_seqs : list of list
+        The compressed sequences.
+    rules : list of tuple
+        ``(symbol, (left, right))`` for each rule, in creation order.
+    """
+    # Symbols are interned as ints: inputs first, then rules in order.
+    names: List[Hashable] = []
+    ids: Dict[Hashable, int] = {}
+    sym: List[int] = []
+    nxt: List[int] = []
+    prv: List[int] = []
+    starts: List[int] = []
+    lengths: List[int] = []
+    for seq in sequences:
+        start = len(sym)
+        starts.append(start)
+        for symbol in seq:
+            if symbol not in ids:
+                ids[symbol] = len(names)
+                names.append(symbol)
+            sym.append(ids[symbol])
+        end = len(sym)
+        lengths.append(end - start)
+        nxt.extend(range(start + 1, end + 1))
+        prv.extend(range(start - 1, end - 1))
+        if end > start:
+            nxt[-1] = -1
+            prv[start] = -1
+
+    # Positions are never reordered, so a pair's first occurrence is its
+    # smallest position. Each position holds at most one pair in its
+    # lifetime, so position heaps need no deduplication.
+    count: Dict[Tuple[int, int], int] = collections.defaultdict(int)
+    where: Dict[Tuple[int, int], List[int]] = collections.defaultdict(list)
+    for p, q in enumerate(nxt):
+        if q != -1:
+            pair = (sym[p], sym[q])
+            count[pair] += 1
+            where[pair].append(p)  # ascending, so already a heap
+
+    def first(pair):
+        heap = where[pair]
+        while heap:
+            p = heap[0]
+            q = nxt[p]
+            if q != -1 and sym[p] == pair[0] and sym[q] == pair[1]:
+                return p
+            heapq.heappop(heap)
+        return -1
+
+    queue = [(-c, where[pair][0], pair) for pair, c in count.items() if c > 1]
+    heapq.heapify(queue)
+
+    rules: List[Tuple[int, Tuple[int, int]]] = []
+    while queue:
+        c, p, pair = heapq.heappop(queue)
+        if -c != count[pair] or p != first(pair):
+            continue  # stale entry
+        a, b = pair
+        new = len(names)
+        names.append(new_symbol(len(rules)))
+        rules.append((new, pair))
+
+        dirty = set()
+        occurrences = where.pop(pair)
+        occurrences.sort()
+        for p in occurrences:
+            q = nxt[p]
+            # Skip occurrences consumed or altered earlier in this round.
+            if q == -1 or sym[p] != a or sym[q] != b:
+                continue
+            left, right = prv[p], nxt[q]
+            if left != -1:
+                old = (sym[left], a)
+                count[old] -= 1
+                dirty.add(old)
+            count[pair] -= 1
+            if right != -1:
+                old = (b, sym[right])
+                count[old] -= 1
+                dirty.add(old)
+            # Merge q into p.
+            sym[p] = new
+            nxt[p] = right
+            if right != -1:
+                prv[right] = p
+            nxt[q] = -1
+            if left != -1:
+                formed = (sym[left], new)
+                count[formed] += 1
+                heapq.heappush(where[formed], left)
+                dirty.add(formed)
+            if right != -1:
+                formed = (new, sym[right])
+                count[formed] += 1
+                heapq.heappush(where[formed], p)
+                dirty.add(formed)
+
+        dirty.discard(pair)
+        for other in dirty:
+            if count[other] > 1:
+                heapq.heappush(queue, (-count[other], first(other), other))
+
+    final_seqs = []
+    for start, length in zip(starts, lengths):
+        # A sequence's first position is never merged away.
+        seq = []
+        p = start if length else -1
+        while p != -1:
+            seq.append(names[sym[p]])
+            p = nxt[p]
+        final_seqs.append(seq)
+    return final_seqs, [(names[n], (names[x], names[y])) for n, (x, y) in rules]
 
 
 def rules_to_graph(rules: List[str],
@@ -89,42 +230,12 @@ def repair(s: Union[str, list[str]]) -> Tuple[List[List[str]], Dict[str, List[st
         symbols: List[List[str]] = [list(subs) for subs in s]
 
     # Input safety check
+    lowercase = set(string.ascii_lowercase)
     for symbol in symbols:
-        for s in symbol:
-            assert s in string.ascii_lowercase, "Input string must consist of lowercase ASCII characters only."
+        assert lowercase.issuperset(symbol), "Input string must consist of lowercase ASCII characters only."
 
-    productions: Dict[str, List[str]] = {}
-    non_terminal_counter: int = 1
-
-    while True:
-        # Count the frequency of adjacent pairs and filter those occurring more than once
-
-        pair_counts = collections.Counter()
-        for subs in symbols:
-            pair_counts.update(zip(subs, subs[1:]))
-
-        frequent_pairs = {pair: count for pair, count in pair_counts.items() if count > 1}
-
-        if not frequent_pairs:
-            break
-
-        # Find the most frequent pair and create a new non-terminal
-        most_frequent_pair = max(frequent_pairs, key=frequent_pairs.get)
-        new_non_terminal = f'A{non_terminal_counter}'
-        non_terminal_counter += 1
-        productions[new_non_terminal] = list(most_frequent_pair)
-
-        for idx, subs in enumerate(symbols):
-            i = 0
-            while i < len(subs) - 1:
-                # Check if the current pair matches the most frequent pair
-                if (subs[i], subs[i + 1]) == most_frequent_pair:
-                    # Replace the pair with the new non-terminal
-                    subs[i:i + 2] = [new_non_terminal]
-                    i = max(i - 1, 0)  # Step back to handle overlapping pairs
-                else:
-                    i += 1
-            symbols[idx] = subs
+    symbols, rules = repair_pairs(symbols, lambda i: f'A{i + 1}')
+    productions: Dict[str, List[str]] = {nt: list(pair) for nt, pair in rules}
 
     return symbols, productions
 
@@ -196,11 +307,15 @@ def convert_to_cnf(start_symbols: Union[str, List[str]],
     for idx, word in enumerate(start_symbols):
         word = replace_terminals(list(word))
         start_nt = 'S_' + str(idx)
-        while len(word) > 2:
-            new_nt = f'N{new_nt_counter}'
-            cnf_productions[new_nt] = word[:2]
-            word = [new_nt] + word[2:]
-            new_nt_counter += 1
+        # Fold left into binary rules, as for long productions above.
+        if len(word) > 2:
+            head = word[0]
+            for symbol in word[1:-1]:
+                new_nt = f'N{new_nt_counter}'
+                cnf_productions[new_nt] = [head, symbol]
+                head = new_nt
+                new_nt_counter += 1
+            word = [head, word[-1]]
         cnf_productions[start_nt] = word
 
     return start_nt, cnf_productions
