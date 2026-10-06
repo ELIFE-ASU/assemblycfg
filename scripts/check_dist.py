@@ -26,6 +26,7 @@ EXPECTED_SDIST_FILES = {
     "examples/ln_9999.txt",
     "scripts/check_dist.py",
     "tests/test_det.py",
+    "tests/test_lz.py",
     "tests/test_vac.py",
 }
 EXPECTED_WHEEL_FILES = {
@@ -33,6 +34,7 @@ EXPECTED_WHEEL_FILES = {
     "assemblycfg/_version.py",
     "assemblycfg/cfg_ai.py",
     "assemblycfg/det.py",
+    "assemblycfg/lz.py",
     "assemblycfg/utils.py",
     "assemblycfg/vac.py",
     "assemblycfg/data/integer_chain_9999.txt",

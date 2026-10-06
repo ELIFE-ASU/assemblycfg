@@ -1,6 +1,7 @@
 from ._version import __version__
 from .cfg_ai import ai_core, repair_with_pathways
 from .det import calculate_assembly_path_det
+from .lz import lz_lower_bound
 from .vac import (
     VacError,
     find_vac,

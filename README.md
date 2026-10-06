@@ -77,6 +77,22 @@ represent molecular fragments. More complete programs are available in the
 [`examples`](https://github.com/ELIFE-ASU/assemblycfg/tree/main/examples)
 directory.
 
+## Lower bound from LZ factorisation
+
+`lz_lower_bound` places a valid lower bound on the assembly index of a single
+directed string:
+
+```python
+import assemblycfg as cfg
+
+print(cfg.lz_lower_bound("abracadabra"))  # 7
+```
+
+Read left to right, every assembly pathway builds the string by appending one
+character or a substring that already occurs earlier in it. The fewest such
+steps, found by dynamic programming over prefixes, bounds the assembly index
+from below.
+
 ## Lower bounds from vector addition chains
 
 `vac_lower_bound` places a valid lower bound on the assembly index of a string,
