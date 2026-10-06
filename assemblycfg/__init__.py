@@ -1,6 +1,16 @@
 from ._version import __version__
 from .cfg_ai import ai_core, repair_with_pathways
 from .det import calculate_assembly_path_det
+from .vac import (
+    VacError,
+    find_vac,
+    install_vac,
+    mol_unit_counts,
+    scalar_chain_length,
+    solve_vac,
+    string_unit_counts,
+    vac_lower_bound,
+)
 from .utils import (
     bond_order_rdkit_to_int,
     dict_to_nx,

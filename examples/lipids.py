@@ -1,5 +1,3 @@
-import os
-
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from rdkit import Chem
@@ -135,39 +133,26 @@ def get_bounds(smiles_list):
     Returns:
         tuple: A tuple containing:
             - list of Assembly index upper bounds calculated using the CFG DET method.
-            - list of Lower bounds on the assembly indices from addition chains.
+            - list of Lower bounds on the assembly indices from vector addition chains.
     """
     # Convert all the SMILES to NetworkX graphs without hydrogen
     graphs = [CFG.smi_to_nx(smile, add_hydrogens=False) for smile in smiles_list]
 
     # Initialize lists to store the results
     L_det_list = []
-    L_ac_list = []
+    L_vac_list = []
 
     # Loop over the graphs, calculate AI bounds
     for i, g in enumerate(graphs):
         print(flush=True)
         L_det, _, _ = CFG.calculate_assembly_path_det(g)
         L_det_list.append(L_det)
-        L_ac_list.append(l_n[len(g.edges)])
+        L_vac_list.append(CFG.vac_lower_bound(g))
 
-    return L_det_list, L_ac_list
+    return L_det_list, L_vac_list
 
 
 if __name__ == "__main__":
-    l_n = [0]
-    base_path = os.path.dirname(__file__)
-    with open(os.path.join(base_path, 'ln_9999.txt'),
-              'r') as file:  # This file contains precomputed shortest addition chain values
-        # Skip the header line
-        next(file)
-        next(file)
-
-        for line in file:  # Read each line in the file
-            # Split the line into columns based on whitespace
-            columns = line.split()
-            l_n.append(int(columns[3]))
-
     carbon_lengths = range(2, 18)
     fatty_acid_smiles = [generate_glyceride_smiles(c, 0) for c in carbon_lengths]
     triglyceride_smiles = [generate_triglyceride_smiles(c, 0) for c in carbon_lengths]
@@ -191,7 +176,7 @@ if __name__ == "__main__":
     # Plot the graphs
     ax1.plot(carbon_lengths, L_det_list, 'o:', label='RePair Upper Bound', lw=2, color='black')
     ax1.plot(carbon_lengths, ai_list, 'o-', label='Assembly Index', lw=2, color='black')
-    ax1.plot(carbon_lengths, ai_lower_list, 'o:', label='Integer Chain Lower Bound', lw=2, color='black')
+    ax1.plot(carbon_lengths, ai_lower_list, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='black')
     ax1.set_title("Fatty Acid", fontsize=xs)
     ax1.legend(loc="lower right")
     ax1.set_xticks(carbon_lengths[::2])  # Set ticks to every second value
@@ -204,7 +189,7 @@ if __name__ == "__main__":
 
     ax2.plot(carbon_lengths, L_det_list_trig, 'o:', label='RePair Upper Bound', lw=2, color='blue')
     ax2.plot(carbon_lengths, ai_list_trig, 'o-', label='Assembly Index', lw=2, color='blue')
-    ax2.plot(carbon_lengths, ai_lower_list_trig, 'o:', label='Integer Chain Lower Bound', lw=2, color='blue')
+    ax2.plot(carbon_lengths, ai_lower_list_trig, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='blue')
     ax2.set_title("Triglyceride", fontsize=xs)
     ax2.legend(loc="lower right")
     ax2.set_xticks(carbon_lengths[::2])  # Set ticks to every second value
@@ -217,7 +202,7 @@ if __name__ == "__main__":
 
     ax3.plot(carbon_lengths, L_det_list_phos, 'o:', label='RePair Upper Bound', lw=2, color='red')
     ax3.plot(carbon_lengths, ai_list_phos, 'o-', label='Assembly Index', lw=2, color='red')
-    ax3.plot(carbon_lengths, ai_lower_list_phos, 'o:', label='Integer Chain Lower Bound', lw=2, color='red')
+    ax3.plot(carbon_lengths, ai_lower_list_phos, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='red')
     ax3.set_title("Phospholipid", fontsize=xs)
     ax3.legend(loc="lower right")
     ax3.set_xticks(carbon_lengths[::2])  # Set ticks to every second value

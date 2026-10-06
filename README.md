@@ -7,7 +7,8 @@
 
 `assemblycfg` calculates upper bounds on directed string and molecular assembly
 indices using the RePair smallest-grammar algorithm. It quickly finds a short
-assembly path, but it does not guarantee the shortest possible path.
+assembly path, but it does not guarantee the shortest possible path. It also
+places lower bounds on assembly index using vector addition chains.
 
 ## Installation
 
@@ -75,6 +76,31 @@ The virtual objects returned by the molecular workflow are NetworkX graphs that
 represent molecular fragments. More complete programs are available in the
 [`examples`](https://github.com/ELIFE-ASU/assemblycfg/tree/main/examples)
 directory.
+
+## Lower bounds from vector addition chains
+
+`vac_lower_bound` places a valid lower bound on the assembly index of a string,
+a molecule, or a list of them (bounding their joint assembly index):
+
+```python
+import assemblycfg as cfg
+
+print(cfg.vac_lower_bound("abracadabra"))          # 7
+print(cfg.vac_lower_bound(cfg.smi_to_nx("CCO")))   # 6
+```
+
+Counting the copies of each basic unit (characters, or bonds by element pair
+and bond order) maps an object to a vector, and joining two objects adds their
+vectors. Every assembly pathway is therefore a vector addition chain of the
+same length, so the shortest chain reaching the object's vector bounds its
+assembly index from below.
+
+Chains are solved by [`vac`](https://github.com/ELIFE-ASU/additionchains),
+which is installed on first use with `cargo` (install Rust from
+[rustup.rs](https://rustup.rs)) into `~/.cache/assemblycfg/vac`. Set `VAC_PATH`
+to use your own build, or `VAC_REF` to install a specific branch, tag or
+commit. Without `vac`, the function warns and returns the closed-form bounds
+it would start from.
 
 ## Development
 
