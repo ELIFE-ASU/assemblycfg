@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "assemblycfg"
 dynamic = ["version"]
-description = "Bound assembly index: upper bounds from the grammar algorithm RePair, lower bounds from vector addition chains."
+description = "Bound assembly index: upper bounds from the grammar algorithm RePair, lower bounds from LZ and vector addition chains."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
