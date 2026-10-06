@@ -19,7 +19,7 @@ url: "https://pypi.org/project/assemblycfg/"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.20562899"
-    description: "Archived assemblycfg 1.2.4 software release"
+    description: "Archived assemblycfg 1.2.5 software release"
 license: "MIT"
-version: "1.2.4"
+version: "1.2.5"
 date-released: "2026-06-05"
