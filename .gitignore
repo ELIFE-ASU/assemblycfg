@@ -166,3 +166,8 @@ cython_debug/
 examples/lipids.pdf
 examples/lipids.png
 Breakage/
+examples/random_strings.pdf
+examples/random_strings.png
+
+# Offline script that writes the AssemblyCPP lookup table for random_strings.py
+examples/make_random_strings_table.py
