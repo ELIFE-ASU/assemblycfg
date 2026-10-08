@@ -1,4 +1,5 @@
 import csv
+import gc
 import os
 import time
 
@@ -14,8 +15,10 @@ ALPHABET = list("abcd")
 # String lengths for the assembly index panel and the compute time panel
 AI_LENGTHS = np.linspace(10, 100, 20).astype(int)
 TIME_LENGTHS = np.unique(np.geomspace(10, 1000, 50).astype(int))
-N_SAMPLES = 5
+N_SAMPLES = 20
 SEED = 2024
+# RePair and the LZ bound are timed as the fastest of several calls on each string
+REPEATS = 5
 # Exact assembly indices and compute times from AssemblyCPP, written by an offline script
 TABLE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "random_strings_ai.csv")
 
@@ -43,6 +46,9 @@ def timed(func, s):
     """
     Call a function on a string and time it.
 
+    Garbage collection is paused during the call, as in timeit, so that a collection
+    of the whole interpreter's objects is not charged to whichever call triggers it.
+
     Parameters:
         func (callable): The function to call.
         s (str): The input string.
@@ -50,9 +56,32 @@ def timed(func, s):
     Returns:
         tuple: The function's result and the wall-clock time in seconds.
     """
-    start = time.perf_counter()
-    result = func(s)
-    return result, time.perf_counter() - start
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        start = time.perf_counter()
+        result = func(s)
+        elapsed = time.perf_counter() - start
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+    return result, elapsed
+
+
+def best_of(func, s, repeats=REPEATS):
+    """
+    Call a function on a string several times and keep the fastest time.
+
+    Parameters:
+        func (callable): The function to call.
+        s (str): The input string.
+        repeats (int): The number of calls.
+
+    Returns:
+        tuple: The function's result and the fastest wall-clock time in seconds.
+    """
+    runs = [timed(func, s) for _ in range(repeats)]
+    return runs[0][0], min(t for _, t in runs)
 
 
 def repair_upper_bound(s: str) -> int:
@@ -94,23 +123,30 @@ def band(ax, x, samples, color, style, label, lw):
 if __name__ == "__main__":
     table, timeout = load_table()
 
-    # Bounds and AssemblyCPP results on the same strings
+    # Bounds on every sample, and AssemblyCPP on the samples in the table (fewer at long
+    # lengths, where it always times out)
     repair_ai, lz_ai, acpp_ai, acpp_exact = [], [], [], []
     for length in AI_LENGTHS:
+        strings = random_strings(length)
         rows = table[length]
-        repair_ai.append(np.mean([repair_upper_bound(s) for s, *_ in rows]))
-        lz_ai.append(np.mean([CFG.lz_lower_bound(s) for s, *_ in rows]))
+        repair_ai.append(np.mean([repair_upper_bound(s) for s in strings]))
+        lz_ai.append(np.mean([CFG.lz_lower_bound(s) for s in strings]))
         acpp_ai.append(np.mean([ai for _, ai, _, _ in rows]))
         acpp_exact.append(all(exact for *_, exact in rows))
     acpp_ai = np.array(acpp_ai)
     acpp_exact = np.array(acpp_exact)
 
-    # Compute times of the bounds out to long strings
-    repair_time, lz_time = [], []
-    for length in TIME_LENGTHS:
-        strings = random_strings(length)
-        repair_time.append([timed(repair_upper_bound, s)[1] for s in strings])
-        lz_time.append([timed(CFG.lz_lower_bound, s)[1] for s in strings])
+    # Compute times of the bounds out to long strings, as the fastest of several sweeps over
+    # every length. Spreading the repeats over the run, rather than repeating each call back
+    # to back, keeps a slow stretch of the machine from raising every repeat of one length.
+    strings = [random_strings(length) for length in TIME_LENGTHS]
+    repair_time = np.full((len(TIME_LENGTHS), N_SAMPLES), np.inf)
+    lz_time = np.full((len(TIME_LENGTHS), N_SAMPLES), np.inf)
+    for _ in range(REPEATS):
+        for i, samples in enumerate(strings):
+            for j, s in enumerate(samples):
+                repair_time[i, j] = min(repair_time[i, j], timed(repair_upper_bound, s)[1])
+                lz_time[i, j] = min(lz_time[i, j], timed(CFG.lz_lower_bound, s)[1])
 
     # AssemblyCPP compute times wherever every sample finished exactly
     acpp_lengths = [length for length in TIME_LENGTHS
