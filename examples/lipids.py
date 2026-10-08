@@ -132,7 +132,8 @@ def get_bounds(smiles_list):
 
     Returns:
         tuple: A tuple containing:
-            - list of Assembly index upper bounds calculated using the CFG DET method.
+            - list of Assembly index upper bounds from RePair on trail partitions (DET method).
+            - list of Assembly index upper bounds from graph RePair.
             - list of Lower bounds on the assembly indices from vector addition chains.
     """
     # Convert all the SMILES to NetworkX graphs without hydrogen
@@ -140,6 +141,7 @@ def get_bounds(smiles_list):
 
     # Initialize lists to store the results
     L_det_list = []
+    L_graph_list = []
     L_vac_list = []
 
     # Loop over the graphs, calculate AI bounds
@@ -147,9 +149,11 @@ def get_bounds(smiles_list):
         print(flush=True)
         L_det, _, _ = CFG.calculate_assembly_path_det(g)
         L_det_list.append(L_det)
+        L_graph, _, _ = CFG.calculate_assembly_path_graph_repair(g)
+        L_graph_list.append(L_graph)
         L_vac_list.append(CFG.vac_lower_bound(g))
 
-    return L_det_list, L_vac_list
+    return L_det_list, L_graph_list, L_vac_list
 
 
 if __name__ == "__main__":
@@ -159,13 +163,13 @@ if __name__ == "__main__":
     phospholipid_smiles = [generate_phospholipid_smiles(c, 0) for c in carbon_lengths]
 
     ai_list = [3, 4, 4, 5, 5, 6, 5, 6, 6, 7, 6, 7, 7, 7, 6, 7]
-    L_det_list, ai_lower_list = get_bounds(fatty_acid_smiles)
+    L_det_list, L_graph_list, ai_lower_list = get_bounds(fatty_acid_smiles)
 
     ai_list_trig = [7, 8, 8, 9, 9, 10, 9, 10, 10, 11, 10, 11, 11, 11, 10, 11]
-    L_det_list_trig, ai_lower_list_trig = get_bounds(triglyceride_smiles)
+    L_det_list_trig, L_graph_list_trig, ai_lower_list_trig = get_bounds(triglyceride_smiles)
 
     ai_list_phos = [14, 15, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 18, 18]
-    L_det_list_phos, ai_lower_list_phos = get_bounds(phospholipid_smiles)
+    L_det_list_phos, L_graph_list_phos, ai_lower_list_phos = get_bounds(phospholipid_smiles)
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 6))
 
@@ -174,7 +178,8 @@ if __name__ == "__main__":
     xs = 16
 
     # Plot the graphs
-    ax1.plot(carbon_lengths, L_det_list, 'o:', label='RePair Upper Bound', lw=2, color='black')
+    ax1.plot(carbon_lengths, L_det_list, 'o:', label='Trail RePair Upper Bound', lw=2, color='black')
+    ax1.plot(carbon_lengths, L_graph_list, 's--', label='Graph RePair Upper Bound', lw=2, color='black')
     ax1.plot(carbon_lengths, ai_list, 'o-', label='Assembly Index', lw=2, color='black')
     ax1.plot(carbon_lengths, ai_lower_list, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='black')
     ax1.set_title("Fatty Acid", fontsize=xs)
@@ -184,10 +189,11 @@ if __name__ == "__main__":
     ax1.tick_params(axis='both', which='major', labelsize=xs - 2, direction='in', length=6, width=2)
     ax1.tick_params(axis='both', which='both', top=True, right=True)
     ax1.set_xlabel(xlab, fontsize=xs)
-    ax1.set_ylim(0, max(L_det_list) + 1)
+    ax1.set_ylim(0, max(L_det_list + L_graph_list) + 1)
     ax1.set_ylabel(ylab, fontsize=xs)
 
-    ax2.plot(carbon_lengths, L_det_list_trig, 'o:', label='RePair Upper Bound', lw=2, color='blue')
+    ax2.plot(carbon_lengths, L_det_list_trig, 'o:', label='Trail RePair Upper Bound', lw=2, color='blue')
+    ax2.plot(carbon_lengths, L_graph_list_trig, 's--', label='Graph RePair Upper Bound', lw=2, color='blue')
     ax2.plot(carbon_lengths, ai_list_trig, 'o-', label='Assembly Index', lw=2, color='blue')
     ax2.plot(carbon_lengths, ai_lower_list_trig, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='blue')
     ax2.set_title("Triglyceride", fontsize=xs)
@@ -197,10 +203,11 @@ if __name__ == "__main__":
     ax2.tick_params(axis='both', which='major', labelsize=xs - 2, direction='in', length=6, width=2)
     ax2.tick_params(axis='both', which='both', top=True, right=True)
     ax2.set_xlabel(xlab, fontsize=xs)
-    ax2.set_ylim(0, max(L_det_list_trig) + 1)
+    ax2.set_ylim(0, max(L_det_list_trig + L_graph_list_trig) + 1)
     ax2.set_ylabel(ylab, fontsize=xs)
 
-    ax3.plot(carbon_lengths, L_det_list_phos, 'o:', label='RePair Upper Bound', lw=2, color='red')
+    ax3.plot(carbon_lengths, L_det_list_phos, 'o:', label='Trail RePair Upper Bound', lw=2, color='red')
+    ax3.plot(carbon_lengths, L_graph_list_phos, 's--', label='Graph RePair Upper Bound', lw=2, color='red')
     ax3.plot(carbon_lengths, ai_list_phos, 'o-', label='Assembly Index', lw=2, color='red')
     ax3.plot(carbon_lengths, ai_lower_list_phos, 'o:', label='Vector Addition Chain Lower Bound', lw=2, color='red')
     ax3.set_title("Phospholipid", fontsize=xs)
@@ -210,7 +217,7 @@ if __name__ == "__main__":
     ax3.tick_params(axis='both', which='major', labelsize=xs - 2, direction='in', length=6, width=2)
     ax3.tick_params(axis='both', which='both', top=True, right=True)
     ax3.set_xlabel(xlab, fontsize=xs)
-    ax3.set_ylim(0, max(L_det_list_phos) + 1)
+    ax3.set_ylim(0, max(L_det_list_phos + L_graph_list_phos) + 1)
     ax3.set_ylabel(ylab, fontsize=xs)
 
     # Restrict y-axis to integer ticks

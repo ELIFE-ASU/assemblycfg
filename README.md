@@ -72,6 +72,19 @@ length, virtual_objects, path = cfg.calculate_assembly_path_det(molgraph)
 print(f"a(Cholesterol) <= {length}")
 ```
 
+`calculate_assembly_path_graph_repair` is a deterministic alternative that runs
+RePair on the molecular graph itself, adapted from the GraphRePair-inspired
+bound in [parallelassemblycpp](https://github.com/ELIFE-ASU/parallelassemblycpp).
+It repeatedly joins the most common pair of incident fragments, counting the
+most occurrences that share no bond, so branched and cyclic motifs can be
+reused as well as linear ones. `graph_repair` returns the full construction
+certificate. Ties are broken in atom order; `iterations` adds passes over
+random bond orders and keeps the shortest pathway:
+
+```python
+length, virtual_objects, path = cfg.calculate_assembly_path_graph_repair(molgraph, iterations=20)
+```
+
 The virtual objects returned by the molecular workflow are NetworkX graphs that
 represent molecular fragments. More complete programs are available in the
 [`examples`](https://github.com/ELIFE-ASU/assemblycfg/tree/main/examples)

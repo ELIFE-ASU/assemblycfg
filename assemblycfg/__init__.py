@@ -1,6 +1,7 @@
 from ._version import __version__
 from .cfg_ai import ai_core, repair_with_pathways
 from .det import calculate_assembly_path_det
+from .graphrepair import GraphRepairResult, calculate_assembly_path_graph_repair, graph_repair
 from .lz import lz_lower_bound
 from .vac import (
     VacError,
