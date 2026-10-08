@@ -1,3 +1,10 @@
+"""
+Upper bounds on string assembly index from the RePair grammar.
+
+RePair compresses the input into a straight-line grammar; converting it to
+Chomsky normal form gives one join per binary production, which is an
+assembly pathway.
+"""
 import collections
 import heapq
 import string

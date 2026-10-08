@@ -1,7 +1,13 @@
+"""Upper and lower bounds on string and molecular assembly index."""
 from ._version import __version__
-from .cfg_ai import ai_core, repair_with_pathways
-from .det import calculate_assembly_path_det
-from .graphrepair import GraphRepairResult, calculate_assembly_path_graph_repair, graph_repair
+
+# Upper bounds on string assembly index
+from .string_repair import ai_core, repair_with_pathways
+
+# Upper bounds on molecular assembly index
+from .molecule_repair import GraphRepairResult, calculate_assembly_path_graph_repair, graph_repair
+
+# Lower bounds on string and molecular assembly index
 from .lz import lz_lower_bound
 from .vac import (
     VacError,
@@ -13,7 +19,9 @@ from .vac import (
     string_unit_counts,
     vac_lower_bound,
 )
-from .utils import (
+
+# Molecule conversion
+from .molecules import (
     bond_order_rdkit_to_int,
     dict_to_nx,
     get_disconnected_subgraphs,

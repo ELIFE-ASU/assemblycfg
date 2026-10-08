@@ -5,9 +5,92 @@ import pytest
 from networkx.algorithms.isomorphism import categorical_edge_match, categorical_node_match
 
 import assemblycfg as cfg
-from test_det import AMINO_ACIDS
 
-# Lipids from examples/lipids.py with their assembly indices.
+TRYPTOPHAN = "c1[nH]c2ccccc2c1C[C@H](N)C(=O)O"
+
+AMINO_ACIDS = (
+    ("glycine", "C(C(=O)O)N", 3),
+    ("alanine", "C[C@@H](C(=O)O)N", 4),
+    ("serine", "C([C@@H](C(=O)O)N)O", 4),
+    ("aspartic-acid", "C([C@@H](C(=O)O)N)C(=O)O", 5),
+    ("cysteine", "C([C@@H](C(=O)O)N)S", 5),
+    ("glutamic-acid", "C(CC(=O)O)[C@@H](C(=O)O)N", 5),
+    ("threonine", "C[C@H]([C@@H](C(=O)O)N)O", 5),
+    ("valine", "CC(C)[C@@H](C(=O)O)N", 5),
+    ("asparagine", "C([C@@H](C(=O)O)N)C(=O)N", 6),
+    ("glutamine", "C(CC(=O)N)[C@@H](C(=O)O)N", 6),
+    ("isoleucine", "CC[C@H](C)[C@@H](C(=O)O)N", 6),
+    ("leucine", "CC(C)C[C@@H](C(=O)O)N", 6),
+    ("lysine", "C(CCN)C[C@@H](C(=O)O)N", 6),
+    ("proline", "C1C[C@H](NC1)C(=O)O", 6),
+    ("methionine", "CSCC[C@@H](C(=O)O)N", 7),
+    ("arginine", "C(C[C@@H](C(=O)O)N)CN=C(N)N", 9),
+    ("histidine", "C1=C(NC=N1)C[C@@H](C(=O)O)N", 9),
+    ("phenylalanine", "C1=CC=C(C=C1)C[C@@H](C(=O)O)N", 9),
+    ("tyrosine", "C1=CC(=CC=C1C[C@@H](C(=O)O)N)O", 9),
+    ("tryptophan", TRYPTOPHAN, 11),
+)
+
+# Multiplicity is retained because this fixture represents a joint target, not a
+# set of unique SMILES strings.
+ATMOSPHERIC_NETWORK_SMILES = (
+    "O=O",
+    "O",
+    "[OH]",
+    "OO[H]",
+    "OO",
+    "[HH]",
+    "[C]=O",
+    "[CH]=O",
+    "C=O",
+    "C",
+    "[CH3]",
+    "CC",
+    "[N]=O",
+    "N(=O)[O]",
+    "[NH]=O",
+    "[O-][O+]=O",
+    "O=[N](=O)O",
+    "C=C=C",
+    "[CH]=C=C",
+    "CC#C",
+    "C=C=C",
+    "C=CC[CH2]",
+    "CCC=O",
+    "CC=C",
+    "CCC[CH2]",
+    "CCC",
+    "CCO",
+    "C=CO",
+    "CC[CH2]",
+    "C=C",
+    "[CH]",
+    "COO[CH2]",
+    "C[O]",
+    "C=C=O",
+    "CC(=O)[CH2]",
+    "CC=O",
+    "C#C",
+    "[CH]=C",
+    "[C]#[C]",
+    "[CH]=C",
+    "[CH]=S",
+    "S=C=S",
+    "[C]=S",
+    "O=C=S",
+    "[SH]",
+    "S",
+    "O=S(=O)=O",
+    "S=S",
+    "O=[SH]",
+    "O=S(=O)(O)O",
+    "O=S=O",
+    "[S]=O",
+    "O=C=O",
+    "N#N",
+)
+
+# Lipids from examples/molecules/lipids.py with their assembly indices.
 LIPIDS = (
     ("propanoic-acid", "CCC(=O)O", 3),
     ("nonanoic-acid", "CCCCCCCCC(=O)O", 5),
@@ -161,3 +244,42 @@ def test_bound_survives_shuffled_atom_order(seed):
     result = cfg.graph_repair(shuffled)
     assert_valid_certificate(shuffled, result)
     assert result.upper_bound == 6
+
+
+@pytest.mark.parametrize(
+    ("smiles", "add_hydrogens", "lower_bound", "upper_bound"),
+    [
+        pytest.param("C1CCC1", True, 4, 4, id="cyclobutane-with-hydrogen"),
+        pytest.param("C1CCC1", False, 2, 2, id="cyclobutane"),
+        pytest.param("C" * 52, False, 7, 8, id="long-alkane"),
+        pytest.param("c1ccccc1", True, 5, 5, id="benzene-with-hydrogen"),
+        pytest.param(TRYPTOPHAN, False, 11, 11, id="tryptophan"),
+    ],
+)
+def test_known_molecule_upper_bounds(smiles, add_hydrogens, lower_bound, upper_bound):
+    graph = cfg.smi_to_nx(smiles, add_hydrogens=add_hydrogens)
+    result = cfg.graph_repair(graph)
+    assert_valid_certificate(graph, result)
+    assert lower_bound <= result.upper_bound <= upper_bound
+
+
+@pytest.mark.parametrize(
+    ("smiles", "lower_bound"),
+    [
+        pytest.param(("O=C=O", "C", "O", "N"), 6, id="small"),
+        pytest.param(ATMOSPHERIC_NETWORK_SMILES, 3, id="atmospheric-network"),
+    ],
+)
+def test_joint_systems(smiles, lower_bound):
+    graph = nx.disjoint_union_all([cfg.smi_to_nx(s) for s in smiles])
+    result = cfg.graph_repair(graph, compensate_disjoint=True)
+    assert_valid_certificate(graph, result)
+    assert lower_bound <= result.upper_bound <= result.trivial_upper_bound
+
+
+def test_joint_amino_acid_upper_bound():
+    graph = nx.disjoint_union_all(
+        [cfg.smi_to_nx(smiles, add_hydrogens=False) for _, smiles, _ in AMINO_ACIDS]
+    )
+    result = cfg.graph_repair(graph, compensate_disjoint=True)
+    assert 37 <= result.upper_bound <= result.trivial_upper_bound

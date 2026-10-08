@@ -5,10 +5,10 @@
 [![CI](https://github.com/ELIFE-ASU/assemblycfg/actions/workflows/ci.yml/badge.svg)](https://github.com/ELIFE-ASU/assemblycfg/actions/workflows/ci.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20562899.svg)](https://doi.org/10.5281/zenodo.20562899)
 
-`assemblycfg` calculates upper bounds on directed string and molecular assembly
-indices using the RePair smallest-grammar algorithm. It quickly finds a short
-assembly path, but it does not guarantee the shortest possible path. It also
-places lower bounds on assembly index using vector addition chains.
+`assemblycfg` places bounds on the assembly index of directed strings and
+molecules. Upper bounds come from the RePair smallest-grammar algorithm, which
+quickly finds a short assembly pathway but does not guarantee the shortest.
+Lower bounds come from LZ factorisation and vector addition chains.
 
 ## Installation
 
@@ -25,7 +25,9 @@ Plotting is optional. To run the visual examples, install the `plot` extra:
 python -m pip install "assemblycfg[plot]"
 ```
 
-## String assembly
+## Upper bounds
+
+### Strings
 
 The central function, `repair_with_pathways`, returns an upper bound on the
 assembly index, the virtual objects used along the path, and a NetworkX directed
@@ -57,40 +59,34 @@ These graphs can become unwieldy. The
 [AssemblyTheoryTools](https://pypi.org/project/assemblytheorytools/) package
 provides more sophisticated pathway plotting functions.
 
-## Molecular assembly
+### Molecules
 
-`calculate_assembly_path_det` places a valid upper bound on the assembly index
-of a molecule. It performs especially well on string-like molecules such as
-lipids. For example:
+`calculate_assembly_path_graph_repair` runs RePair on the molecular graph
+itself, adapted from the GraphRePair-inspired bound in
+[parallelassemblycpp](https://github.com/ELIFE-ASU/parallelassemblycpp). It
+repeatedly joins the most common pair of incident fragments, counting the most
+occurrences that share no bond, so branched and cyclic motifs can be reused as
+well as chains:
 
 ```python
 import assemblycfg as cfg
 
 smiles = "C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C"
 molgraph = cfg.smi_to_nx(smiles)
-length, virtual_objects, path = cfg.calculate_assembly_path_det(molgraph)
+length, virtual_objects, path = cfg.calculate_assembly_path_graph_repair(molgraph)
 print(f"a(Cholesterol) <= {length}")
 ```
 
-`calculate_assembly_path_graph_repair` is a deterministic alternative that runs
-RePair on the molecular graph itself, adapted from the GraphRePair-inspired
-bound in [parallelassemblycpp](https://github.com/ELIFE-ASU/parallelassemblycpp).
-It repeatedly joins the most common pair of incident fragments, counting the
-most occurrences that share no bond, so branched and cyclic motifs can be
-reused as well as linear ones. `graph_repair` returns the full construction
-certificate. Ties are broken in atom order; `iterations` adds passes over
-random bond orders and keeps the shortest pathway:
-
-```python
-length, virtual_objects, path = cfg.calculate_assembly_path_graph_repair(molgraph, iterations=20)
-```
-
-The virtual objects returned by the molecular workflow are NetworkX graphs that
-represent molecular fragments. More complete programs are available in the
+The virtual objects are NetworkX graphs of the molecular fragments. Ties are
+broken in atom order, so the default is deterministic; `iterations` adds passes
+over random bond orders and keeps the shortest pathway. `graph_repair` returns
+the full construction certificate. More complete programs are available in the
 [`examples`](https://github.com/ELIFE-ASU/assemblycfg/tree/main/examples)
 directory.
 
-## Lower bound from LZ factorisation
+## Lower bounds
+
+### LZ factorisation
 
 `lz_lower_bound` places a valid lower bound on the assembly index of a single
 directed string:
@@ -106,7 +102,7 @@ character or a substring that already occurs earlier in it. The fewest such
 steps, found by dynamic programming over prefixes, bounds the assembly index
 from below.
 
-## Lower bounds from vector addition chains
+### Vector addition chains
 
 `vac_lower_bound` places a valid lower bound on the assembly index of a string,
 a molecule, or a list of them (bounding their joint assembly index):
@@ -130,6 +126,19 @@ which is installed on first use with `cargo` (install Rust from
 to use your own build, or `VAC_REF` to install a specific branch, tag or
 commit. Without `vac`, the function warns and returns the closed-form bounds
 it would start from.
+
+## Package layout
+
+| Module | Contents |
+| --- | --- |
+| `string_repair` | RePair upper bounds on string assembly index |
+| `molecule_repair` | Graph RePair upper bounds on molecular assembly index |
+| `lz` | LZ factorisation lower bound for strings |
+| `vac` | Vector addition chain lower bounds for strings and molecules |
+| `molecules` | Conversion between SMILES, Molfiles, RDKit and NetworkX |
+
+Every public function is also available from the top-level `assemblycfg`
+namespace.
 
 ## Development
 

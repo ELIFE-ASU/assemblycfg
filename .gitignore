@@ -162,17 +162,14 @@ cython_debug/
 .idea/
 .vscode/
 
-# Figures written by the examples
-examples/lipids.pdf
-examples/lipids.png
+# Local scratch work
 Breakage/
-examples/random_strings.pdf
-examples/random_strings.png
 
-examples/random_strings_tradeoff.pdf
-examples/random_strings_tradeoff.png
+# Figures written by the examples
+examples/**/*.pdf
+examples/**/*.png
 
 # Offline scripts that write the AssemblyCPP lookup tables for random_strings.py
 # and random_strings_tradeoff.py
-examples/make_random_strings_table.py
-examples/make_random_strings_tradeoff_table.py
+examples/strings/make_random_strings_table.py
+examples/strings/make_random_strings_tradeoff_table.py

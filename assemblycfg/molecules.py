@@ -1,3 +1,4 @@
+"""Conversion between SMILES, Molfiles, RDKit molecules and NetworkX graphs."""
 import warnings
 from typing import List, Dict, Any, Sequence, Optional
 

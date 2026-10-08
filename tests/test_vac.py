@@ -174,9 +174,9 @@ def test_find_vac_prefers_vac_path(monkeypatch):
 
 
 @pytest.mark.parametrize("smiles", ["CCO", "c1ccccc1", "OC(=O)CCC(=O)O", "NCC(=O)NCC(=O)O"])
-def test_lower_bound_is_below_det_upper_bound(real_vac, smiles):
+def test_lower_bound_is_below_graph_repair_upper_bound(real_vac, smiles):
     graph = cfg.smi_to_nx(smiles)
-    upper, _, _ = cfg.calculate_assembly_path_det(graph)
+    upper, _, _ = cfg.calculate_assembly_path_graph_repair(graph)
     assert closed_form(graph) <= cfg.vac_lower_bound(graph) <= upper
 
 

@@ -1,5 +1,5 @@
 """
-GraphRePair-inspired molecular assembly upper bound.
+Upper bounds on molecular assembly index from RePair on the graph itself.
 
 Ported from ``graphRepair.h`` in parallelassemblycpp. Active tokens partition
 the bonds into connected fragments. A production joins two incident,

@@ -31,7 +31,7 @@ from typing import Any, Dict, Hashable, List, Optional, Sequence, Tuple, Union
 import networkx as nx
 from rdkit import Chem
 
-from .utils import mol_to_nx, remove_hydrogen_from_graph
+from .molecules import mol_to_nx, remove_hydrogen_from_graph
 
 VAC_REPOSITORY = "https://github.com/ELIFE-ASU/additionchains"
 _VAC_EXECUTABLE = "vac.exe" if platform.system() == "Windows" else "vac"

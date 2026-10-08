@@ -5,7 +5,7 @@ import networkx as nx
 import pytest
 
 import assemblycfg as cfg
-from assemblycfg.cfg_ai import convert_to_cnf, repair, repair_pairs
+from assemblycfg.string_repair import convert_to_cnf, repair, repair_pairs
 
 ABRACADABRA_OBJECTS = {
     "a",
