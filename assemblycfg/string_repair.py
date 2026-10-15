@@ -153,45 +153,36 @@ def repair_pairs(sequences: Sequence[Sequence[Hashable]],
     return final_seqs, [(names[n], (names[x], names[y])) for n, (x, y) in rules]
 
 
-def rules_to_graph(rules: List[str],
+def rules_to_graph(rules: List[Tuple[str, str, str]],
                    virt_obj: List[str]) -> nx.DiGraph:
     """
-    Convert a list of join rules into a NetworkX directed graph and add virtual nodes.
+    Convert a list of joins into a NetworkX directed graph and add virtual nodes.
 
-    Parses rules in the form ``"A + B = C"`` and adds directed edges ``A -> C`` and
-    ``B -> C`` for each rule. Virtual objects are added to the graph as isolated
-    nodes (if not already present).
+    Adds directed edges ``A -> C`` and ``B -> C`` for each join ``(A, B, C)``.
+    Virtual objects are added to the graph as isolated nodes (if not already
+    present).
 
     Parameters
     ----------
-    rules : list of str
-        Sequence of rules where each rule is expected to contain two operands and
-        a result using the literal separators ``' + '`` and `` = '`` (e.g.
-        ``"A + B = C"``). Empty list is accepted and yields a graph containing only
-        the provided ``virt_obj`` nodes.
+    rules : list of tuple
+        Joins ``(left, right, product)`` as returned by ``get_rules``. An empty
+        list yields a graph containing only the provided ``virt_obj`` nodes.
     virt_obj : list of str
         Sequence of virtual object identifiers to be added as nodes to the graph.
-        Nodes that also appear in parsed rules are not duplicated.
+        Nodes that also appear in the joins are not duplicated.
 
     Returns
     -------
     networkx.DiGraph
         A directed graph with nodes for all operands, results and virtual objects.
-        For each rule ``"A + B = C"`` there will be edges ``A -> C`` and ``B -> C``.
-
-    Raises
-    ------
-    ValueError
-        If a rule does not contain exactly two operands and one result when split
-        using the expected separators (e.g. malformed string).
+        For each join ``(A, B, C)`` there will be edges ``A -> C`` and ``B -> C``.
     """
     # Create a directed graph and add virtual objects as nodes
     graph = nx.DiGraph()
     graph.add_nodes_from(virt_obj)
 
     # Add edges based on rules
-    for rule in rules:
-        a, b, c = rule.replace(" + ", " = ").split(" = ")
+    for a, b, c in rules:
         graph.add_edge(a, c)
         graph.add_edge(b, c)
 
@@ -314,15 +305,19 @@ def convert_to_cnf(start_symbols: Union[str, List[str]],
     for idx, word in enumerate(start_symbols):
         word = replace_terminals(list(word))
         start_nt = 'S_' + str(idx)
-        # Fold left into binary rules, as for long productions above.
-        if len(word) > 2:
-            head = word[0]
-            for symbol in word[1:-1]:
+        # Join neighbours level by level. This takes as many binary rules as a left
+        # fold, but the rules expand to O(n log n) characters in all rather than the
+        # O(n^2) of a left fold's prefixes, which the pathway writes out.
+        while len(word) > 2:
+            paired = []
+            for i in range(0, len(word) - 1, 2):
                 new_nt = f'N{new_nt_counter}'
-                cnf_productions[new_nt] = [head, symbol]
-                head = new_nt
+                cnf_productions[new_nt] = word[i:i + 2]
+                paired.append(new_nt)
                 new_nt_counter += 1
-            word = [head, word[-1]]
+            if len(word) % 2:
+                paired.append(word[-1])
+            word = paired
         cnf_productions[start_nt] = word
 
     return start_nt, cnf_productions
@@ -384,14 +379,14 @@ def ai_core(s: Union[str, List[str]],
 
 def get_rules(s: Union[str, List[str]],
               production: Dict[str, List[str]],
-              f_print: bool = False) -> List[str]:
+              f_print: bool = False) -> List[Tuple[str, str, str]]:
     """
-    Generate join rules from productions by performing a topological sort.
+    Generate joins from productions by performing a topological sort.
 
     Performs a Kahn-style topological traversal over the dependency graph
     defined by `production` and the initial symbols in `s`. Builds string
-    mappings for intermediate non-terminals and emits join rules of the form
-    ``"<left> + <right> = <result>"`` when a non-terminal expands to two symbols.
+    mappings for intermediate non-terminals and emits a join
+    ``(left, right, result)`` when a non-terminal expands to two symbols.
 
     Parameters
     ----------
@@ -408,10 +403,10 @@ def get_rules(s: Union[str, List[str]],
 
     Returns
     -------
-    rules : list of str
-        List of join rules in topologically valid order. Each rule is formatted
-        as ``"A + B = C"`` where ``A`` and ``B`` are the left-hand constituents and
-        ``C`` is the computed result string for the non-terminal.
+    rules : list of tuple
+        Joins ``(A, B, C)`` in topologically valid order, where ``A`` and ``B``
+        are the constituent strings and ``C`` is the string they join into. Each
+        string is a single object shared by every join that mentions it.
 
     Raises
     ------
@@ -449,7 +444,7 @@ def get_rules(s: Union[str, List[str]],
         print("Joins:", flush=True)
 
     # Perform topological sort
-    rules: List[str] = []
+    rules: List[Tuple[str, str, str]] = []
     while start_q:
         symbol = start_q.popleft()
         tmap[symbol] = symbol
@@ -462,25 +457,26 @@ def get_rules(s: Union[str, List[str]],
             if len(production[symbol]) == 2:
                 a, b = production[symbol]
                 tmap[symbol] = tmap[a] + tmap[b]
-                rules.append(f"{tmap[a]} + {tmap[b]} = {tmap[symbol]}")
+                rules.append((tmap[a], tmap[b], tmap[symbol]))
             else:
                 tmap[symbol] = production[symbol][0]
 
     if f_print:
-        print("\n".join(rules), flush=True)
+        for a, b, c in rules:
+            print(f"{a} + {b} = {c}", flush=True)
 
     return rules
 
 
-def extract_virtual_objects(rules: List[str]) -> List[str]:
+def extract_virtual_objects(rules: List[Tuple[str, str, str]]) -> List[str]:
     """
-    Extract virtual objects from a list of join rules, excluding the final rule's result.
+    Extract virtual objects from a list of joins, excluding the final join's result.
 
     Parameters
     ----------
-    rules : list of str
-        Sequence of join rules formatted as ``"A + B = C"``. An empty sequence
-        results in an empty list.
+    rules : list of tuple
+        Joins ``(left, right, product)`` as returned by ``get_rules``. An empty
+        sequence results in an empty list.
 
     Returns
     -------
@@ -493,11 +489,10 @@ def extract_virtual_objects(rules: List[str]) -> List[str]:
         return []
 
     # Extract all objects from the rules
-    objects = {obj for rule in rules for obj in rule.replace(" + ", " = ").split(" = ")}
+    objects = {obj for rule in rules for obj in rule}
 
     # Remove the last result
-    last_result = rules[-1].split(" = ")[-1]
-    objects.discard(last_result)
+    objects.discard(rules[-1][2])
 
     # Return the sorted list of objects by string length
     return sorted(objects, key=len)
@@ -530,8 +525,9 @@ def repair_with_pathways(s: Union[str, List[str]], f_print: bool = False, debug:
         Sorted list of virtual object identifiers extracted from the join rules (excluding the final
         rule result). Sorted by string length ascending.
     rules_graph : networkx.DiGraph
-        Directed graph representing join relationships. For each join rule ``"A + B = C"`` there
-        are edges ``A -> C`` and ``B -> C``; virtual objects are added as isolated nodes when present.
+        Directed graph representing join relationships. For each join of ``A`` and ``B`` into ``C``
+        there are edges ``A -> C`` and ``B -> C``; virtual objects are added as isolated nodes when
+        present.
 
     Raises
     ------

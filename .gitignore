@@ -171,5 +171,5 @@ examples/**/*.png
 
 # Offline scripts that write the AssemblyCPP lookup tables for random_strings.py
 # and random_strings_tradeoff.py
-examples/strings/make_random_strings_table.py
-examples/strings/make_random_strings_tradeoff_table.py
+examples/benchmarks/make_random_strings_table.py
+examples/benchmarks/make_random_strings_tradeoff_table.py

@@ -17,7 +17,7 @@ ABRACADABRA_OBJECTS = {
     "abr",
     "abra",
     "abrac",
-    "abraca",
+    "ad",
     "abracad",
 }
 
@@ -121,6 +121,21 @@ def test_abracadabra_pathway_has_expected_objects_and_dependencies():
     for component, product in path.edges:
         assert component in product
         assert len(component) < len(product)
+
+
+def test_long_pathway_replays_and_stays_near_linear_size():
+    rng = random.Random(0)
+    source = "".join(rng.choice("abcd") for _ in range(4000))
+    assembly_index, virtual_objects, path = cfg.repair_with_pathways(source)
+
+    joins = [node for node in path if path.in_degree(node)]
+    assert len(joins) <= assembly_index
+    for product in joins:
+        parts = list(path.predecessors(product))
+        assert any(left + right == product for left in parts for right in parts)
+    # A left fold of the start symbol writes out every prefix, 2.1 million
+    # characters here; joining neighbours level by level writes about n log2 n.
+    assert sum(map(len, path)) < 2 * len(source) * len(source).bit_length()
 
 
 def test_joint_pathway_contains_both_products():

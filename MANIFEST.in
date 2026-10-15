@@ -4,5 +4,5 @@ include README.md
 include RELEASING.md
 include cfg.bib
 include scripts/check_dist.py
-recursive-include examples *.py *.csv
+recursive-include examples *.py *.csv *.md
 recursive-include tests *.py
