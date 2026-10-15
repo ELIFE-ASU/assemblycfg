@@ -23,12 +23,13 @@ in the CSV tables by offline scripts.
 | `benchmarks/random_strings_tradeoff.py` | Error against compute time for RePair, LZ and AssemblyCPP at increasing timeouts |
 | `benchmarks/random_strings_memory_scaling.py` | Peak memory of RePair and LZ against string length |
 
-The molecular benchmarks compare graph RePair and the closed-form vector
-addition chain bound, without vac's chain search, with AssemblyCPP on random
-peptides, and on GDB-17 molecules from `molecules/1M-GDB-Combined.csv`, whose
-exact assembly indices are the reference.
+The molecular benchmarks use graph RePair and the closed-form vector addition
+chain bound, without vac's chain search. The tradeoff benchmarks compare them
+with AssemblyCPP on random peptides, and on GDB-17 molecules from
+`molecules/1M-GDB-Combined.csv`, whose exact assembly indices are the reference.
 
 | Script | Shows |
 | --- | --- |
 | `benchmarks/peptide_tradeoff.py` | Error against compute time for graph RePair, the closed-form VAC bound and AssemblyCPP at increasing timeouts, by peptide length |
 | `benchmarks/gdb_tradeoff.py` | The same comparison on GDB-17 molecules, by bond count |
+| `benchmarks/peptide_memory_scaling.py` | Peak memory of graph RePair and the closed-form VAC bound against bond count, on random peptides |
